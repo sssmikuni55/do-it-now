@@ -64,7 +64,7 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
     >
       {/* Background Text (Guide) - Hidden when swiping or completed */}
       {!isSwiped && currentX === 0 && (
-        <div className="absolute inset-0 flex items-center justify-end pr-10 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-end pr-4 pointer-events-none">
           <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground/30">
             <span>スライドして完了</span>
             <ChevronRight className="w-3 h-3 animate-pulse" />
