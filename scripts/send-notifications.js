@@ -1,5 +1,5 @@
-const { createClient } = require('@supabase/supabase-js');
-const webpush = require('web-push');
+import { createClient } from '@supabase/supabase-js';
+import webpush from 'web-push';
 
 async function sendNotifications() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -41,6 +41,7 @@ async function sendNotifications() {
       body += `今日も無理のない範囲で進めていきましょう。`;
 
       await sendPush(sub, { title: 'Do It Now', body });
+      console.log(`Sent morning summary to: ${sub.endpoint}`);
     }
   } else {
     // 期限超過時の単発通知
@@ -52,15 +53,19 @@ async function sendNotifications() {
       .eq('is_overdue_notified', false)
       .lt('current_due_date', now.toISOString());
 
+    console.log(`Found ${overdueTasks?.length || 0} overdue tasks to notify.`);
+
     for (const task of (overdueTasks || [])) {
       const { data: subs } = await supabase.from('push_subscriptions').select('*').eq('user_id', task.user_id);
       for (const sub of (subs || [])) {
         const body = `「${task.title}」の期限を過ぎています。予定通り進んでいますか？難しければ少し見直してみましょう。`;
         await sendPush(sub, { title: 'Do It Now', body, url: `/task/${task.id}` });
+        console.log(`Sent overdue alert for task "${task.title}" to: ${sub.endpoint}`);
       }
       await supabase.from('tasks').update({ is_overdue_notified: true }).eq('id', task.id);
     }
   }
+  console.log('Notification process completed.');
 }
 
 async function sendPush(sub, payload) {
@@ -71,7 +76,7 @@ async function sendPush(sub, payload) {
   try {
     await webpush.sendNotification(subscription, JSON.stringify(payload));
   } catch (err) {
-    console.error('Push failed:', err.endpoint);
+    console.error('Push failed:', sub.endpoint);
   }
 }
 
