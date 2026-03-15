@@ -57,9 +57,21 @@ export const useTasks = () => {
     fetchTasks();
   };
 
+  const deleteTask = async (id: string) => {
+    // 関連する excuse_logs も削除されるように（カスケード設定がない場合を考慮）
+    await supabase.from('excuse_logs').delete().eq('task_id', id);
+    // 子タスクの削除
+    await supabase.from('tasks').delete().eq('parent_id', id);
+    // タスク本体の削除
+    const { error } = await supabase.from('tasks').delete().eq('id', id);
+    
+    if (error) console.error('Error deleting task:', error);
+    else fetchTasks();
+  };
+
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  return { tasks, loading, completeTask, addTask, getSubtasks, refresh: fetchTasks };
+  return { tasks, loading, completeTask, deleteTask, addTask, getSubtasks, refresh: fetchTasks };
 };
