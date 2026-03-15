@@ -57,6 +57,16 @@ export const useTasks = () => {
     fetchTasks();
   };
 
+  const updateTask = async (id: string, updates: any) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update(updates)
+      .eq('id', id);
+    
+    if (error) throw error;
+    fetchTasks();
+  };
+
   const deleteTask = async (id: string) => {
     // 関連する excuse_logs も削除されるように（カスケード設定がない場合を考慮）
     await supabase.from('excuse_logs').delete().eq('task_id', id);
@@ -73,5 +83,5 @@ export const useTasks = () => {
     fetchTasks();
   }, []);
 
-  return { tasks, loading, completeTask, deleteTask, addTask, getSubtasks, refresh: fetchTasks };
+  return { tasks, loading, completeTask, deleteTask, updateTask, addTask, getSubtasks, refresh: fetchTasks };
 };

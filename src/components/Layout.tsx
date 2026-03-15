@@ -33,12 +33,14 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
 
       {/* Floating Action Button (FAB) */}
-      <Link
-        to="/add"
-        className="fixed right-6 bottom-24 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-20"
-      >
-        <Plus className="w-8 h-8" />
-      </Link>
+      {!location.pathname.startsWith('/task/') && (
+        <Link
+          to="/add"
+          className="fixed right-6 bottom-24 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-20"
+        >
+          <Plus className="w-8 h-8" />
+        </Link>
+      )}
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border px-6 py-3 flex items-center justify-between z-10">

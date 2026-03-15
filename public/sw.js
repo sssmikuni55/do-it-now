@@ -1,15 +1,23 @@
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : { title: 'Do It Now', body: 'タスクの時間です！' };
+
   const options = {
     body: data.body,
-    icon: '/favicon.svg',
+    icon: '/favicon.svg', // もし public にあれば
     badge: '/favicon.svg',
-    data: { url: data.url || '/' }
+    data: {
+      url: data.url || '/'
+    }
   };
-  event.waitUntil(self.registration.showNotification(data.title, options));
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
 });
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow(event.notification.data.url));
+  event.waitUntil(
+    clients.openWindow(event.notification.data.url)
+  );
 });

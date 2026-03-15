@@ -7,6 +7,8 @@ import TaskDetail from './pages/TaskDetail';
 import Stats from './pages/Stats';
 import Settings from './pages/Settings';
 
+import EditTask from './pages/EditTask';
+
 function App() {
   return (
     <AuthWrapper>
@@ -15,6 +17,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/add" element={<AddTask />} />
           <Route path="/task/:id" element={<TaskDetail />} />
+          <Route path="/task/:id/edit" element={<EditTask />} />
           <Route path="/stats" element={<Stats />} />
           <Route path="/settings" element={<Settings />} />
         </Routes>

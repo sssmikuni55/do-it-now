@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Circle, CheckCircle2, Zap, AlertTriangle, Footprints, History, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Circle, CheckCircle2, Zap, AlertTriangle, Footprints, History, Plus, Trash2, Edit3 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useTasks } from '../hooks/useTasks';
 
@@ -113,12 +113,20 @@ const TaskDetail = () => {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <h2 className="text-xl font-bold truncate flex-1">{task.title}</h2>
-        <button 
-          onClick={handleDeleteRequest}
-          className="p-2 text-muted-foreground hover:text-destructive transition-colors ml-auto"
-        >
-          <Trash2 className="w-5 h-5" />
-        </button>
+        <div className="flex items-center gap-1 ml-auto">
+          <button 
+            onClick={() => navigate(`/task/${id}/edit`)}
+            className="p-2 text-muted-foreground hover:text-primary transition-colors"
+          >
+            <Edit3 className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={handleDeleteRequest}
+            className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -202,7 +210,7 @@ const TaskDetail = () => {
                       st.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium' :
                       'bg-resistance-low/10 text-resistance-low'
                     }`}>
-                      {st.resistance === 'high' ? 'HARD' : st.resistance === 'medium' ? 'MED' : '2MIN'}
+                      {st.resistance === 'high' ? 'HARD' : st.resistance === 'medium' ? 'MED' : 'LOW'}
                     </span>
                   </div>
                 )}
@@ -248,7 +256,7 @@ const TaskDetail = () => {
                   >
                     <option value="high">重い（HARD）</option>
                     <option value="medium">普通（MED）</option>
-                    <option value="low">楽勝（2MIN）</option>
+                    <option value="low">楽勝（LOW）</option>
                   </select>
                 </div>
               </div>

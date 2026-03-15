@@ -28,8 +28,26 @@ const Home = () => {
   }, [tasks, loading]);
 
   const todoTasks = tasks.filter(t => t.status !== 'completed' && !t.parent_id);
-  const lowResistanceTasks = tasks.filter(t => t.status !== 'completed' && t.resistance === 'low');
-  const otherTasks = todoTasks.filter(t => t.resistance !== 'low');
+  
+  // 「すぐにとりかかれるタスク」の条件を修正
+  // 抵抗感が 'low' かつ (期限が未設定 または 今日まで または 明日まで または 超過)
+  const lowResistanceTasks = tasks.filter(t => {
+    if (t.status === 'completed') return false;
+    if (t.resistance !== 'low') return false;
+    
+    // 期限のチェック
+    if (!t.current_due_date) return true; // 期限なしは常に表示
+    
+    const dueDate = new Date(t.current_due_date);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(23, 59, 59, 999);
+    
+    // 期限が明日23:59:59までなら表示（今日・明日・超過を含む）
+    return dueDate <= tomorrow;
+  });
+  
+  const otherTasks = todoTasks.filter(t => !lowResistanceTasks.find(lt => lt.id === t.id));
 
   const handleCompleteRequest = (taskId: string) => {
     const pendingSubtasks = tasks.filter(t => t.parent_id === taskId && t.status !== 'completed');
@@ -85,7 +103,7 @@ const Home = () => {
                 task.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium' :
                 'bg-resistance-low/10 text-resistance-low'
               }`}>
-                {task.resistance === 'low' ? '2MIN' : task.resistance === 'medium' ? 'MED' : 'HARD'}
+                {task.resistance === 'low' ? 'LOW' : task.resistance === 'medium' ? 'MED' : 'HARD'}
               </span>
             </div>
           </div>

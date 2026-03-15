@@ -45,14 +45,17 @@ const Settings = () => {
     setPushLoading(true);
     try {
       if (isPushEnabled) {
+        // Unsubscribe
         const registration = await navigator.serviceWorker.ready;
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
           await subscription.unsubscribe();
+          // Supabase から削除
           await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
         }
         setIsPushEnabled(false);
       } else {
+        // Subscribe
         const registration = await navigator.serviceWorker.ready;
         const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
         
@@ -61,6 +64,7 @@ const Settings = () => {
           applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
         });
 
+        // Supabase に保存
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const keys = subscription.toJSON().keys;
@@ -85,6 +89,7 @@ const Settings = () => {
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <h2 className="text-2xl font-bold px-1">設定</h2>
 
+      {/* Profile Section */}
       <section className="bg-card rounded-3xl border border-border overflow-hidden p-6 space-y-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -114,7 +119,7 @@ const Settings = () => {
               disabled={pushLoading}
               className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
                 isPushEnabled 
-                  ? 'bg-primary text-primary-foreground' 
+                  ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20' 
                   : 'bg-secondary text-muted-foreground'
               }`}
             >
@@ -124,6 +129,7 @@ const Settings = () => {
         </div>
       </section>
 
+      {/* App Info */}
       <section className="bg-card rounded-3xl border border-border p-6 space-y-4">
         <h3 className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
           <Info className="w-3 h-3" /> アプリケーション情報
@@ -134,11 +140,12 @@ const Settings = () => {
             <span className="font-mono">1.0.0-PRO</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            先延ばしは技術で解決できます。一歩ずつ進みましょう。
+            このアプリは、あなたの成功を願って開発されました。先延ばしは技術で解決できます。一歩ずつ進みましょう。
           </p>
         </div>
       </section>
 
+      {/* Logout */}
       <button 
         onClick={handleLogout}
         className="w-full py-4 bg-destructive/10 text-destructive font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-destructive hover:text-white transition-all active:scale-[0.98]"
@@ -146,6 +153,10 @@ const Settings = () => {
         <LogOut className="w-5 h-5" />
         ログアウト
       </button>
+
+      <div className="text-center py-10 opacity-30 select-none">
+        <h1 className="text-4xl font-black italic">DO IT NOW</h1>
+      </div>
     </div>
   );
 };
