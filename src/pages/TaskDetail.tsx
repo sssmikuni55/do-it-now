@@ -209,12 +209,12 @@ const TaskDetail = () => {
                     }`}>
                       {st.importance === 'high' ? 'HIGH' : st.importance === 'medium' ? 'MED' : 'LOW'}
                     </span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase ${
-                      st.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high' :
-                      st.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium' :
-                      'bg-resistance-low/10 text-resistance-low'
+                    <span className={`px-2 py-0.5 rounded-full font-bold border ${
+                      st.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high border-resistance-high/20' :
+                      st.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium border-resistance-medium/20' :
+                      'bg-resistance-low/10 text-resistance-low border-resistance-low/20'
                     }`}>
-                      {st.resistance === 'high' ? 'HARD' : st.resistance === 'medium' ? 'MED' : 'LOW'}
+                      着手ハードル：{st.resistance === 'high' ? '高' : st.resistance === 'medium' ? '中' : '低'}
                     </span>
                   </div>
                 )}

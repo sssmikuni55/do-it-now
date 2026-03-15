@@ -116,7 +116,7 @@ const Home = () => {
               <p className={`font-bold truncate ${isSubtask ? 'text-xs' : 'text-sm'}`}>{task.title}</p>
               {task.importance === 'high' && (
                 <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 whitespace-nowrap">
-                  高
+                  重要度：高
                 </span>
               )}
             </div>
@@ -169,12 +169,12 @@ const Home = () => {
                   return `${displayDate} あと ${diffDays} 日`;
                 })()}
               </span>
-              <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
-                task.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high' :
-                task.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium' :
-                'bg-resistance-low/10 text-resistance-low'
+              <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border ${
+                task.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high border-resistance-high/20' :
+                task.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium border-resistance-medium/20' :
+                'bg-resistance-low/10 text-resistance-low border-resistance-low/20'
               }`}>
-                {task.resistance === 'low' ? 'LOW' : task.resistance === 'medium' ? 'MED' : 'HARD'}
+                着手ハードル：{task.resistance === 'low' ? '低' : task.resistance === 'medium' ? '中' : '高'}
               </span>
               {(() => {
                 // 半分経過の判定（1週間以上のタスクのみ）
