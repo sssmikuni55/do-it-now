@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle, Clock, Footprints } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import type { Task } from '../hooks/useTasks';
