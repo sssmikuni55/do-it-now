@@ -11,6 +11,7 @@ export interface Task {
   current_due_date: string;
   status: 'todo' | 'in_progress' | 'completed';
   parent_id: string | null;
+  created_at: string;
 }
 
 export const useTasks = () => {

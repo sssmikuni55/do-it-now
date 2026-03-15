@@ -87,7 +87,19 @@ const Home = () => {
       <div className={`space-y-2 ${isSubtask ? 'ml-6 border-l-2 border-primary/10 pl-4' : ''}`}>
         <div 
           onClick={() => navigate(`/task/${task.id}`)}
-          className={`bg-card p-4 rounded-xl border border-border shadow-sm flex items-start gap-4 active:bg-secondary transition-all group cursor-pointer ${isSubtask ? 'py-3' : ''}`}
+          className={`bg-card p-4 rounded-xl border-2 transition-all group cursor-pointer ${
+            (() => {
+              const now = new Date();
+              now.setHours(0,0,0,0);
+              const dueDate = new Date(task.current_due_date);
+              dueDate.setHours(0,0,0,0);
+              const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+              
+              if (diffDays <= 0) return 'border-destructive bg-destructive/5 shadow-lg shadow-destructive/10';
+              if (diffDays <= 2) return 'border-amber-400 shadow-md shadow-amber-400/20 ring-1 ring-amber-400/50';
+              return 'border-border shadow-sm';
+            })()
+          } flex items-start gap-4 active:bg-secondary ${isSubtask ? 'py-3' : ''}`}
         >
           <button 
             onClick={(e) => {
@@ -105,10 +117,31 @@ const Home = () => {
               {task.importance === 'high' && <AlertCircle className="w-3 h-3 text-destructive" />}
             </div>
             
-            <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
-              <span className="flex items-center gap-1">
+            <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
+              <span className={`flex items-center gap-1 ${
+                (() => {
+                  const now = new Date();
+                  now.setHours(0,0,0,0);
+                  const dueDate = new Date(task.current_due_date);
+                  dueDate.setHours(0,0,0,0);
+                  const diffTime = dueDate.getTime() - now.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  return diffDays <= 2 ? 'text-destructive font-bold' : '';
+                })()
+              }`}>
                 <Clock className="w-3 h-3" />
-                {new Date(task.current_due_date).toLocaleDateString()}
+                {(() => {
+                  const now = new Date();
+                  now.setHours(0,0,0,0);
+                  const dueDate = new Date(task.current_due_date);
+                  dueDate.setHours(0,0,0,0);
+                  const diffTime = dueDate.getTime() - now.getTime();
+                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  
+                  if (diffDays < 0) return '期限切れ';
+                  if (diffDays === 0) return '今日が期限';
+                  return `あと ${diffDays} 日`;
+                })()}
               </span>
               <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
                 task.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high' :
@@ -117,6 +150,24 @@ const Home = () => {
               }`}>
                 {task.resistance === 'low' ? 'LOW' : task.resistance === 'medium' ? 'MED' : 'HARD'}
               </span>
+              {(() => {
+                // 半分経過の判定（1週間以上のタスクのみ）
+                const start = new Date(task.created_at).getTime();
+                const end = new Date(task.current_due_date).getTime();
+                const now = new Date().getTime();
+                const duration = end - start;
+                const sevenDays = 7 * 24 * 60 * 60 * 1000;
+                
+                if (duration >= sevenDays && (now - start) > (duration / 2) && now < end) {
+                  return (
+                    <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
+                      <AlertCircle className="w-2.5 h-2.5" />
+                      折り返し
+                    </span>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
         </div>
