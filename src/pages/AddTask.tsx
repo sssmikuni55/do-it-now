@@ -15,6 +15,8 @@ const AddTask = () => {
     first_step: '',
   });
 
+  const today = new Date().toISOString().split('T')[0];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -36,6 +38,15 @@ const AddTask = () => {
       } else if (formData.due_date_type === 'custom' && formData.custom_due_date) {
         dueDate = new Date(formData.custom_due_date);
         dueDate.setHours(23, 59, 59, 0);
+      }
+      
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      
+      if (dueDate < startOfToday) {
+        alert('過去の日付は設定できません。今日以降の日付を選択してください。');
+        setLoading(false);
+        return;
       }
 
       const { data: { user } } = await supabase.auth.getUser();
@@ -127,6 +138,7 @@ const AddTask = () => {
                 required
                 className="w-full bg-card border border-border p-4 rounded-xl outline-none focus:ring-2 focus:ring-primary"
                 value={formData.custom_due_date}
+                min={today}
                 onChange={(e) => setFormData({ ...formData, custom_due_date: e.target.value })}
               />
             </div>
