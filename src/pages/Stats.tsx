@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart3, PieChart, MessageCircle, Calendar } from 'lucide-react';
+import { ArrowLeft, BarChart3, PieChart, MessageCircle, Calendar, Trash2 } from 'lucide-react';
 import { supabase } from '../utils/supabase';
+import { useTasks } from '../hooks/useTasks';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 
 interface ExcuseLog {
   id: string;
@@ -9,6 +11,7 @@ interface ExcuseLog {
   detail: string;
   created_at: string;
   tasks: {
+    id: string;
     title: string;
   };
 }
@@ -17,27 +20,40 @@ const Stats = () => {
   const navigate = useNavigate();
   const [logs, setLogs] = useState<ExcuseLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const { deleteTask } = useTasks();
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  const fetchLogs = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from('excuse_logs')
+      .select(`
+        id,
+        reason_category,
+        detail,
+        created_at,
+        tasks (
+          id,
+          title
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (!error) setLogs(data as any || []);
+    setLoading(false);
+  };
 
   useEffect(() => {
-    const fetchLogs = async () => {
-      const { data, error } = await supabase
-        .from('excuse_logs')
-        .select(`
-          id,
-          reason_category,
-          detail,
-          created_at,
-          tasks (
-            title
-          )
-        `)
-        .order('created_at', { ascending: false });
-
-      if (!error) setLogs(data as any || []);
-      setLoading(false);
-    };
     fetchLogs();
   }, []);
+
+  const handleDelete = async () => {
+    if (deleteConfirmId) {
+      await deleteTask(deleteConfirmId);
+      setDeleteConfirmId(null);
+      fetchLogs(); // 削除後に再読み込み
+    }
+  };
 
   const reasonCounts = logs.reduce((acc: any, log) => {
     acc[log.reason_category] = (acc[log.reason_category] || 0) + 1;
@@ -106,7 +122,15 @@ const Stats = () => {
                       {new Date(log.created_at).toLocaleDateString()}
                     </span>
                   </div>
-                  <p className="text-sm font-bold">「{log.tasks?.title}」</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-bold">「{log.tasks?.title}」</p>
+                    <button 
+                      onClick={() => setDeleteConfirmId(log.tasks?.id)}
+                      className="p-2 text-muted-foreground hover:text-destructive transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   {log.detail && (
                     <p className="text-xs text-muted-foreground bg-secondary/50 p-3 rounded-xl italic">
                       "{log.detail}"
@@ -118,6 +142,13 @@ const Stats = () => {
           </section>
         </>
       )}
+      <ConfirmDialog 
+        isOpen={!!deleteConfirmId}
+        title="履歴とタスクの削除"
+        message="この履歴に紐付くタスク本体も削除されます。よろしいですか？"
+        onConfirm={handleDelete}
+        onCancel={() => setDeleteConfirmId(null)}
+      />
     </div>
   );
 };
