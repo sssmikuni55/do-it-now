@@ -1,10 +1,92 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Circle, Clock, Footprints } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Footprints, ChevronRight } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import type { Task } from '../hooks/useTasks';
 import { ExcuseModal } from '../components/ExcuseModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+
+const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void }) => {
+  const [startX, setStartX] = useState<number | null>(null);
+  const [currentX, setCurrentX] = useState(0);
+  const [isSwiped, setIsSwiped] = useState(task.is_first_step_completed);
+  const containerRef = useState<HTMLDivElement | null>(null)[0]; // Placeholder for simplicity
+
+  const handleStart = (clientX: number) => {
+    if (isSwiped) return;
+    setStartX(clientX);
+  };
+
+  const handleMove = (clientX: number, containerWidth: number) => {
+    if (startX === null || isSwiped) return;
+    const diff = clientX - startX;
+    const max = containerWidth - 44; // Handle width
+    const progress = Math.min(Math.max(0, diff), max);
+    setCurrentX(progress);
+    
+    if (progress >= max * 0.9) {
+      setIsSwiped(true);
+      setStartX(null);
+      setCurrentX(0);
+      onComplete();
+    }
+  };
+
+  const handleEnd = () => {
+    if (isSwiped) return;
+    setStartX(null);
+    setCurrentX(0);
+  };
+
+  return (
+    <div 
+      className={`relative h-11 rounded-xl overflow-hidden mb-2 border transition-all ${
+        isSwiped 
+          ? 'bg-green-500/10 border-green-500/20' 
+          : 'bg-secondary/30 border-border/50'
+      }`}
+      onMouseMove={(e) => handleMove(e.clientX, e.currentTarget.offsetWidth)}
+      onMouseUp={handleEnd}
+      onMouseLeave={handleEnd}
+      onTouchMove={(e) => handleMove(e.touches[0].clientX, e.currentTarget.offsetWidth)}
+      onTouchEnd={handleEnd}
+    >
+      {/* Background Text (Shimmer) */}
+      {!isSwiped && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground/30 animate-pulse">
+            <ChevronRight className="w-3 h-3" />
+            <ChevronRight className="w-3 h-3 -ml-2" />
+            <ChevronRight className="w-3 h-3 -ml-2" />
+            <span className="ml-1 uppercase tracking-wider">Swipe to Start</span>
+          </div>
+        </div>
+      )}
+
+      {/* Track / Content */}
+      <div className="absolute inset-0 flex items-center px-2">
+        <p className={`text-[11px] leading-tight flex-1 ml-10 transition-opacity ${
+          isSwiped ? 'line-through text-green-700/60' : 'text-muted-foreground font-medium'
+        }`}>
+          {task.first_step}
+        </p>
+      </div>
+
+      {/* Handle */}
+      <div
+        onMouseDown={(e) => handleStart(e.clientX)}
+        onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+        style={{ transform: `translateX(${currentX}px)` }}
+        className={`absolute left-1 top-1 w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-grab active:cursor-grabbing shadow-sm ${
+          isSwiped 
+            ? 'bg-green-500 text-white' 
+            : 'bg-background text-muted-foreground border border-border/50'
+        }`}
+      >
+        <Footprints className="w-4 h-4" />
+      </div>
+    </div>
+  );
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -122,24 +204,10 @@ const Home = () => {
             </div>
             
             {!isSubtask && task.first_step && (
-              <div 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFirstStepStatus(task.id, task.is_first_step_completed);
-                }}
-                className={`flex items-start gap-2 p-2 rounded-xl mb-2 transition-all cursor-pointer ${
-                  task.is_first_step_completed 
-                    ? 'bg-green-500/10 border border-green-500/20 opacity-80' 
-                    : 'bg-secondary/50 border border-border/50 hover:bg-secondary active:scale-[0.98]'
-                }`}
-              >
-                <div className={`mt-0.5 transition-colors ${task.is_first_step_completed ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  <Footprints className="w-3.5 h-3.5" />
-                </div>
-                <p className={`text-[11px] leading-tight flex-1 ${task.is_first_step_completed ? 'line-through text-green-700/60' : 'text-muted-foreground font-medium'}`}>
-                  {task.first_step}
-                </p>
-              </div>
+              <SwipeStep 
+                task={task} 
+                onComplete={() => toggleFirstStepStatus(task.id, task.is_first_step_completed)} 
+              />
             )}
             
             <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
