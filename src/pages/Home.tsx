@@ -159,7 +159,7 @@ const Home = () => {
                   const now = new Date();
                   now.setHours(0,0,0,0);
                   const dueDate = new Date(task.current_due_date);
-                  const displayDate = `${dueDate.getMonth() + 1}/${dueDate.getDate()}`;
+                  const displayDate = `期限日：${dueDate.getFullYear()}/${dueDate.getMonth() + 1}/${dueDate.getDate()}`;
                   dueDate.setHours(0,0,0,0);
                   const diffTime = dueDate.getTime() - now.getTime();
                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
