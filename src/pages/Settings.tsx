@@ -16,11 +16,75 @@ const Settings = () => {
     window.location.href = '/';
   };
 
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+
+  useEffect(() => {
+    checkPushSubscription();
+  }, []);
+
+  const checkPushSubscription = async () => {
+    if (!('serviceWorker' in navigator)) return;
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    setIsPushEnabled(!!subscription);
+  };
+
+  const urlBase64ToUint8Array = (base64String: string) => {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
+  const handleTogglePush = async () => {
+    setPushLoading(true);
+    try {
+      if (isPushEnabled) {
+        const registration = await navigator.serviceWorker.ready;
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          await subscription.unsubscribe();
+          await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+        }
+        setIsPushEnabled(false);
+      } else {
+        const registration = await navigator.serviceWorker.ready;
+        const publicVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+        
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+        });
+
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const keys = subscription.toJSON().keys;
+          await supabase.from('push_subscriptions').insert([{
+            user_id: user.id,
+            endpoint: subscription.endpoint,
+            auth_key: keys?.auth,
+            p256dh_key: keys?.p256dh
+          }]);
+        }
+        setIsPushEnabled(true);
+      }
+    } catch (err) {
+      console.error('Push operation failed:', err);
+      alert('通知の設定に失敗しました。ブラウザの設定で通知が許可されているか確認してください。');
+    } finally {
+      setPushLoading(false);
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4">
       <h2 className="text-2xl font-bold px-1">設定</h2>
 
-      {/* Profile Section */}
       <section className="bg-card rounded-3xl border border-border overflow-hidden p-6 space-y-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -45,12 +109,21 @@ const Settings = () => {
               <Bell className="w-4 h-4 text-muted-foreground" />
               <span>通知 (ブラウザ送信)</span>
             </div>
-            <span className="text-[10px] bg-secondary text-muted-foreground px-2 py-0.5 rounded-full font-bold">準備中</span>
+            <button
+              onClick={handleTogglePush}
+              disabled={pushLoading}
+              className={`px-3 py-1 rounded-full text-[10px] font-bold transition-all ${
+                isPushEnabled 
+                  ? 'bg-primary text-primary-foreground' 
+                  : 'bg-secondary text-muted-foreground'
+              }`}
+            >
+              {pushLoading ? '中...' : isPushEnabled ? '有効' : '無効'}
+            </button>
           </div>
         </div>
       </section>
 
-      {/* App Info */}
       <section className="bg-card rounded-3xl border border-border p-6 space-y-4">
         <h3 className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
           <Info className="w-3 h-3" /> アプリケーション情報
@@ -61,12 +134,11 @@ const Settings = () => {
             <span className="font-mono">1.0.0-PRO</span>
           </div>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            このアプリは、あなたの成功を願って開発されました。先延ばしは技術で解決できます。一歩ずつ進みましょう。
+            先延ばしは技術で解決できます。一歩ずつ進みましょう。
           </p>
         </div>
       </section>
 
-      {/* Logout */}
       <button 
         onClick={handleLogout}
         className="w-full py-4 bg-destructive/10 text-destructive font-bold rounded-2xl flex items-center justify-center gap-2 hover:bg-destructive hover:text-white transition-all active:scale-[0.98]"
@@ -74,10 +146,6 @@ const Settings = () => {
         <LogOut className="w-5 h-5" />
         ログアウト
       </button>
-
-      <div className="text-center py-10 opacity-30 select-none">
-        <h1 className="text-4xl font-black italic">DO IT NOW</h1>
-      </div>
     </div>
   );
 };
