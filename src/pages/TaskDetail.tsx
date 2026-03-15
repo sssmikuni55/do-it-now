@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Circle, CheckCircle2, Zap, AlertTriangle, Footprints, History, Plus } from 'lucide-react';
+import { ArrowLeft, Circle, CheckCircle2, Zap, AlertTriangle, Footprints, History, Plus, Trash2 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useTasks } from '../hooks/useTasks';
 
 const TaskDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { tasks, loading, completeTask, addTask, getSubtasks, refresh } = useTasks();
+  const { tasks, loading, completeTask, deleteTask, addTask, getSubtasks, refresh } = useTasks();
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [subtaskDetails, setSubtaskDetails] = useState({
     importance: 'medium' as 'low' | 'medium' | 'high',
@@ -17,6 +17,7 @@ const TaskDetail = () => {
   });
   const [confirmTaskId, setConfirmTaskId] = useState<string | null>(null);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const task = tasks.find(t => t.id === id);
   const subtasks = getSubtasks(id!);
@@ -74,11 +75,23 @@ const TaskDetail = () => {
     setConfirmTaskId(taskId);
   };
 
-  const confirmComplete = () => {
+  const confirmComplete = async () => {
     if (confirmTaskId) {
-      completeTask(confirmTaskId);
+      if (isDeleting) {
+        await deleteTask(confirmTaskId);
+        navigate('/');
+      } else {
+        completeTask(confirmTaskId);
+      }
       setConfirmTaskId(null);
+      setIsDeleting(false);
     }
+  };
+
+  const handleDeleteRequest = () => {
+    setConfirmMessage("このタスクを完全に削除します。よろしいですか？");
+    setConfirmTaskId(id!);
+    setIsDeleting(true);
   };
 
   if (loading) return <div className="p-8 text-center text-muted-foreground">読み込み中...</div>;
@@ -99,7 +112,13 @@ const TaskDetail = () => {
         <button onClick={() => navigate('/')} className="p-2 hover:bg-secondary rounded-full transition-colors">
           <ArrowLeft className="w-6 h-6" />
         </button>
-        <h2 className="text-xl font-bold truncate">{task.title}</h2>
+        <h2 className="text-xl font-bold truncate flex-1">{task.title}</h2>
+        <button 
+          onClick={handleDeleteRequest}
+          className="p-2 text-muted-foreground hover:text-destructive transition-colors ml-auto"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Stats Cards */}
@@ -155,6 +174,16 @@ const TaskDetail = () => {
                   <p className={`font-bold text-sm leading-tight ${st.status === 'completed' ? 'line-through opacity-50' : ''}`}>
                     {st.title}
                   </p>
+                  <button 
+                    onClick={() => {
+                      setConfirmMessage("この子タスクを削除しますか？");
+                      setConfirmTaskId(st.id);
+                      setIsDeleting(true);
+                    }}
+                    className="text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-all p-1"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
                 {st.status !== 'completed' && (
                   <div className="flex flex-wrap gap-2">
