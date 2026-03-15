@@ -20,6 +20,7 @@ const TaskDetail = () => {
 
   const task = tasks.find(t => t.id === id);
   const subtasks = getSubtasks(id!);
+  const today = new Date().toISOString().split('T')[0];
 
   const handleAddSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,6 +28,15 @@ const TaskDetail = () => {
     
     if (!subtaskDetails.due_date) {
       alert('子タスクの期限を入力してください。');
+      return;
+    }
+
+    const dueDate = new Date(subtaskDetails.due_date);
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    
+    if (dueDate < startOfToday) {
+      alert('過去の日付は設定できません。今日以降の日付を選択してください。');
       return;
     }
 
@@ -220,6 +230,7 @@ const TaskDetail = () => {
                   type="date"
                   className="w-full bg-background border border-border p-3 rounded-xl text-xs font-bold outline-none shadow-sm cursor-pointer hover:bg-secondary/50 transition-colors"
                   value={subtaskDetails.due_date}
+                  min={today}
                   onChange={e => setSubtaskDetails({...subtaskDetails, due_date: e.target.value})}
                 />
               </div>
