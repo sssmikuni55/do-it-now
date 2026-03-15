@@ -31,23 +31,35 @@ const Home = () => {
   
   // 「すぐにとりかかれるタスク」の条件を修正
   // 抵抗感が 'low' かつ (期限が未設定 または 今日まで または 明日まで または 超過)
-  const lowResistanceTasks = tasks.filter(t => {
-    if (t.status === 'completed') return false;
-    if (t.resistance !== 'low') return false;
-    
-    // 期限のチェック
-    if (!t.current_due_date) return true; // 期限なしは常に表示
-    
-    const dueDate = new Date(t.current_due_date);
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(23, 59, 59, 999);
-    
-    // 期限が明日23:59:59までなら表示（今日・明日・超過を含む）
-    return dueDate <= tomorrow;
-  });
+  const lowResistanceTasks = tasks
+    .filter(t => {
+      if (t.status === 'completed') return false;
+      if (t.resistance !== 'low') return false;
+      
+      // 期限のチェック
+      if (!t.current_due_date) return true; // 期限なしは常に表示
+      
+      const dueDate = new Date(t.current_due_date);
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(23, 59, 59, 999);
+      
+      // 期限が明日23:59:59までなら表示（今日・明日・超過を含む）
+      return dueDate <= tomorrow;
+    })
+    .sort((a, b) => {
+      if (!a.current_due_date) return 1;
+      if (!b.current_due_date) return -1;
+      return new Date(a.current_due_date).getTime() - new Date(b.current_due_date).getTime();
+    });
   
-  const otherTasks = todoTasks.filter(t => !lowResistanceTasks.find(lt => lt.id === t.id));
+  const otherTasks = todoTasks
+    .filter(t => !lowResistanceTasks.find(lt => lt.id === t.id))
+    .sort((a, b) => {
+      if (!a.current_due_date) return 1;
+      if (!b.current_due_date) return -1;
+      return new Date(a.current_due_date).getTime() - new Date(b.current_due_date).getTime();
+    });
 
   const handleCompleteRequest = (taskId: string) => {
     const pendingSubtasks = tasks.filter(t => t.parent_id === taskId && t.status !== 'completed');

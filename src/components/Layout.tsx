@@ -22,9 +22,12 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
           Do It Now
         </h1>
-        <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center">
+        <Link 
+          to="/settings"
+          className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors"
+        >
           <Settings className="w-4 h-4 text-muted-foreground" />
-        </div>
+        </Link>
       </header>
 
       {/* Main Content */}
