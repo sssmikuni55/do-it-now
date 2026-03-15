@@ -159,22 +159,23 @@ const Home = () => {
                   const now = new Date();
                   now.setHours(0,0,0,0);
                   const dueDate = new Date(task.current_due_date);
-                  const displayDate = `期限日：${dueDate.getFullYear()}/${dueDate.getMonth() + 1}/${dueDate.getDate()}`;
+                  const year = dueDate.getFullYear().toString().slice(-2);
+                  const displayDate = `期限 ${year}/${dueDate.getMonth() + 1}/${dueDate.getDate()}`;
                   dueDate.setHours(0,0,0,0);
                   const diffTime = dueDate.getTime() - now.getTime();
                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                   
-                  if (diffDays < 0) return `${displayDate} 期限切れ`;
-                  if (diffDays === 0) return `${displayDate} 今日が期限`;
-                  return `${displayDate} あと ${diffDays} 日`;
+                  if (diffDays < 0) return `${displayDate} 経過`;
+                  if (diffDays === 0) return `${displayDate} 締切`;
+                  return `${displayDate}(あと${diffDays}日)`;
                 })()}
               </span>
-              <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border ${
+              <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase border whitespace-nowrap ${
                 task.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high border-resistance-high/20' :
                 task.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium border-resistance-medium/20' :
                 'bg-resistance-low/10 text-resistance-low border-resistance-low/20'
               }`}>
-                着手ハードル：{task.resistance === 'low' ? '低' : task.resistance === 'medium' ? '中' : '高'}
+                ハードル：{task.resistance === 'low' ? '低' : task.resistance === 'medium' ? '中' : '高'}
               </span>
               {(() => {
                 // 半分経過の判定（1週間以上のタスクのみ）

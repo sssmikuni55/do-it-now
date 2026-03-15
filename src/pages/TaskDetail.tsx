@@ -214,7 +214,7 @@ const TaskDetail = () => {
                       st.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium border-resistance-medium/20' :
                       'bg-resistance-low/10 text-resistance-low border-resistance-low/20'
                     }`}>
-                      着手ハードル：{st.resistance === 'high' ? '高' : st.resistance === 'medium' ? '中' : '低'}
+                      ハードル：{st.resistance === 'high' ? '高' : st.resistance === 'medium' ? '中' : '低'}
                     </span>
                   </div>
                 )}
