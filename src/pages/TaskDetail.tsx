@@ -144,8 +144,12 @@ const TaskDetail = () => {
         <div className="bg-card p-6 rounded-3xl border border-border shadow-sm flex flex-col items-center gap-2">
           <AlertTriangle className="w-6 h-6 text-amber-500" />
           <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">重要度</span>
-          <span className="font-bold text-lg">
-            {task.importance === 'high' ? '高' : task.importance === 'medium' ? '中' : '低'}
+          <span className={`px-2 py-1 rounded text-xs font-bold border ${
+            task.importance === 'high' ? 'bg-destructive/10 text-destructive border-destructive/20' :
+            task.importance === 'medium' ? 'bg-secondary text-muted-foreground border-border' :
+            'bg-secondary/50 text-muted-foreground/60 border-border/50'
+          }`}>
+            重要度：{task.importance === 'high' ? '高' : task.importance === 'medium' ? '中' : '低'}
           </span>
         </div>
       </div>

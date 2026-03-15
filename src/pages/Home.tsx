@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Footprints } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import type { Task } from '../hooks/useTasks';
 import { ExcuseModal } from '../components/ExcuseModal';
@@ -8,7 +7,7 @@ import { ConfirmDialog } from '../components/ConfirmDialog';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { tasks, loading, completeTask, refresh } = useTasks();
+  const { tasks, loading, completeTask, toggleFirstStepStatus, refresh } = useTasks();
   const [overdueTask, setOverdueTask] = useState<Task | null>(null);
   const [confirmTaskId, setConfirmTaskId] = useState<string | null>(null);
   const [confirmMessage, setConfirmMessage] = useState<string>('');
@@ -111,11 +110,36 @@ const Home = () => {
             <Circle className="w-6 h-6 group-hover:hidden" />
             <CheckCircle2 className="w-6 h-6 hidden group-hover:block" />
           </button>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className={`font-semibold ${isSubtask ? 'text-xs' : 'text-sm'}`}>{task.title}</p>
-              {task.importance === 'high' && <AlertCircle className="w-3 h-3 text-destructive" />}
+              <p className={`font-bold truncate ${isSubtask ? 'text-xs' : 'text-sm'}`}>{task.title}</p>
+              {task.importance === 'high' && (
+                <span className="text-[10px] font-bold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded border border-destructive/20 whitespace-nowrap">
+                  高
+                </span>
+              )}
             </div>
+            
+            {!isSubtask && task.first_step && (
+              <div 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFirstStepStatus(task.id, task.is_first_step_completed);
+                }}
+                className={`flex items-start gap-2 p-2 rounded-xl mb-2 transition-all cursor-pointer ${
+                  task.is_first_step_completed 
+                    ? 'bg-green-500/10 border border-green-500/20 opacity-80' 
+                    : 'bg-secondary/50 border border-border/50 hover:bg-secondary active:scale-[0.98]'
+                }`}
+              >
+                <div className={`mt-0.5 transition-colors ${task.is_first_step_completed ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  <Footprints className="w-3.5 h-3.5" />
+                </div>
+                <p className={`text-[11px] leading-tight flex-1 ${task.is_first_step_completed ? 'line-through text-green-700/60' : 'text-muted-foreground font-medium'}`}>
+                  {task.first_step}
+                </p>
+              </div>
+            )}
             
             <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
               <span className={`flex items-center gap-1 ${
@@ -161,7 +185,6 @@ const Home = () => {
                 if (duration >= sevenDays && (now - start) > (duration / 2) && now < end) {
                   return (
                     <span className="bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-bold flex items-center gap-1 animate-pulse">
-                      <AlertCircle className="w-2.5 h-2.5" />
                       折り返し
                     </span>
                   );

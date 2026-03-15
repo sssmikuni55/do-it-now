@@ -12,6 +12,7 @@ export interface Task {
   status: 'todo' | 'in_progress' | 'completed';
   parent_id: string | null;
   created_at: string;
+  is_first_step_completed: boolean;
 }
 
 export const useTasks = () => {
@@ -68,6 +69,16 @@ export const useTasks = () => {
     fetchTasks();
   };
 
+  const toggleFirstStepStatus = async (id: string, currentStatus: boolean) => {
+    const { error } = await supabase
+      .from('tasks')
+      .update({ is_first_step_completed: !currentStatus })
+      .eq('id', id);
+    
+    if (error) throw error;
+    fetchTasks();
+  };
+
   const deleteTask = async (id: string) => {
     // 関連する excuse_logs も削除されるように（カスケード設定がない場合を考慮）
     await supabase.from('excuse_logs').delete().eq('task_id', id);
@@ -84,5 +95,5 @@ export const useTasks = () => {
     fetchTasks();
   }, []);
 
-  return { tasks, loading, completeTask, deleteTask, updateTask, addTask, getSubtasks, refresh: fetchTasks };
+  return { tasks, loading, completeTask, deleteTask, updateTask, toggleFirstStepStatus, addTask, getSubtasks, refresh: fetchTasks };
 };
