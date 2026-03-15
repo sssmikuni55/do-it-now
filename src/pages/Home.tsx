@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CheckCircle2, Circle, Clock, Footprints, ChevronRight } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
