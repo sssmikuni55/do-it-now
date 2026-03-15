@@ -10,7 +10,6 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
   const [startX, setStartX] = useState<number | null>(null);
   const [currentX, setCurrentX] = useState(0);
   const [isSwiped, setIsSwiped] = useState(task.is_first_step_completed);
-  const containerRef = useState<HTMLDivElement | null>(null)[0]; // Placeholder for simplicity
 
   const handleStart = (clientX: number) => {
     if (isSwiped) return;
