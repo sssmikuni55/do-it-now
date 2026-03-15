@@ -159,13 +159,14 @@ const Home = () => {
                   const now = new Date();
                   now.setHours(0,0,0,0);
                   const dueDate = new Date(task.current_due_date);
+                  const displayDate = `${dueDate.getMonth() + 1}/${dueDate.getDate()}`;
                   dueDate.setHours(0,0,0,0);
                   const diffTime = dueDate.getTime() - now.getTime();
                   const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                   
-                  if (diffDays < 0) return '期限切れ';
-                  if (diffDays === 0) return '今日が期限';
-                  return `あと ${diffDays} 日`;
+                  if (diffDays < 0) return `${displayDate} 期限切れ`;
+                  if (diffDays === 0) return `${displayDate} 今日が期限`;
+                  return `${displayDate} あと ${diffDays} 日`;
                 })()}
               </span>
               <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
