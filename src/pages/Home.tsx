@@ -11,6 +11,11 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
   const [currentX, setCurrentX] = useState(0);
   const [isSwiped, setIsSwiped] = useState(task.is_first_step_completed);
 
+  // Sync with external state changes
+  useEffect(() => {
+    setIsSwiped(task.is_first_step_completed);
+  }, [task.is_first_step_completed]);
+
   const handleStart = (clientX: number) => {
     if (isSwiped) return;
     setStartX(clientX);
@@ -19,11 +24,11 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
   const handleMove = (clientX: number, containerWidth: number) => {
     if (startX === null || isSwiped) return;
     const diff = clientX - startX;
-    const max = containerWidth - 44; // Handle width
+    const max = containerWidth - 44; 
     const progress = Math.min(Math.max(0, diff), max);
     setCurrentX(progress);
     
-    if (progress >= max * 0.9) {
+    if (progress >= max * 0.95) {
       setIsSwiped(true);
       setStartX(null);
       setCurrentX(0);
@@ -35,6 +40,13 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
     if (isSwiped) return;
     setStartX(null);
     setCurrentX(0);
+  };
+
+  const handleUndo = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+    if (isSwiped) {
+      onComplete(); // toggle back
+    }
   };
 
   return (
@@ -50,14 +62,12 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
       onTouchMove={(e) => handleMove(e.touches[0].clientX, e.currentTarget.offsetWidth)}
       onTouchEnd={handleEnd}
     >
-      {/* Background Text (Shimmer) */}
-      {!isSwiped && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground/30 animate-pulse">
-            <ChevronRight className="w-3 h-3" />
-            <ChevronRight className="w-3 h-3 -ml-2" />
-            <ChevronRight className="w-3 h-3 -ml-2" />
-            <span className="ml-1 uppercase tracking-wider">Swipe to Start</span>
+      {/* Background Text (Guide) - Hidden when swiping or completed */}
+      {!isSwiped && currentX === 0 && (
+        <div className="absolute inset-0 flex items-center justify-end pr-10 pointer-events-none">
+          <div className="flex items-center gap-1 text-[9px] font-bold text-muted-foreground/30">
+            <span>スライドして完了</span>
+            <ChevronRight className="w-3 h-3 animate-pulse" />
           </div>
         </div>
       )}
@@ -75,11 +85,12 @@ const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void })
       <div
         onMouseDown={(e) => handleStart(e.clientX)}
         onTouchStart={(e) => handleStart(e.touches[0].clientX)}
+        onClick={handleUndo}
         style={{ transform: `translateX(${currentX}px)` }}
-        className={`absolute left-1 top-1 w-9 h-9 rounded-lg flex items-center justify-center transition-colors cursor-grab active:cursor-grabbing shadow-sm ${
+        className={`absolute left-1 top-1 w-9 h-9 rounded-lg flex items-center justify-center transition-all shadow-sm ${
           isSwiped 
-            ? 'bg-green-500 text-white' 
-            : 'bg-background text-muted-foreground border border-border/50'
+            ? 'bg-green-500 text-white cursor-pointer hover:scale-105 active:scale-95' 
+            : 'bg-background text-muted-foreground border border-border/50 cursor-grab active:cursor-grabbing'
         }`}
       >
         <Footprints className="w-4 h-4" />
