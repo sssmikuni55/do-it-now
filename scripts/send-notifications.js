@@ -44,15 +44,20 @@ async function sendNotifications() {
       console.log(`Sent morning summary to: ${sub.endpoint}`);
     }
   } else {
+    // 全タスク数を確認（デバッグ用）
+    const { count: allTasksCount } = await supabase.from('tasks').select('*', { count: 'exact', head: true });
+    console.log(`Total tasks in DB: ${allTasksCount}`);
+
     // 期限超過時の単発通知
     const now = new Date();
-    const { data: overdueTasks } = await supabase
+    const { data: overdueTasks, error: taskError } = await supabase
       .from('tasks')
       .select('*')
       .eq('status', 'todo')
-      .eq('is_overdue_notified', false)
-      .lt('current_due_date', now.toISOString());
+      .lt('current_due_date', now.toISOString())
+      .or('is_overdue_notified.eq.false,is_overdue_notified.is.null'); // null または false を対象
 
+    if (taskError) console.error('Task fetch error:', taskError);
     console.log(`Found ${overdueTasks?.length || 0} overdue tasks to notify.`);
 
     for (const task of (overdueTasks || [])) {
