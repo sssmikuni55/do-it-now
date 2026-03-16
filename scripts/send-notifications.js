@@ -102,6 +102,11 @@ async function sendPush(sub, payload) {
     await webpush.sendNotification(subscription, JSON.stringify(payload));
   } catch (err) {
     console.error('Push failed:', sub.endpoint);
+    console.error('Error status code:', err.statusCode);
+    console.error('Error body:', err.body);
+    if (err.statusCode === 410 || err.statusCode === 404) {
+      console.log('Subscription has expired or is no longer valid.');
+    }
   }
 }
 
