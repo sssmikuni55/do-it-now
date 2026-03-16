@@ -16,11 +16,18 @@ jobs:
       - run: npm install @supabase/supabase-js web-push
       - name: Run Notification Script
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "0 23 * * *" ]; then
+          # JST（日本時間）の「時」を先頭の0を省いて取得（0, 1, 2... 8... 23）
+          JST_HOUR=$(TZ=Asia/Tokyo date +%-H)
+          echo "Current JST Hour: $JST_HOUR"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # 手動実行時は常にサマリー通知を送信してテストしやすくする
             node scripts/send-notifications.js morning
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          elif [ "$JST_HOUR" -eq 8 ]; then
+            # 日本時間の朝8時台に実行された場合は、サマリー通知
             node scripts/send-notifications.js morning
           else
+            # それ以外の時間は超過通知のみ
             node scripts/send-notifications.js overdue
           fi
         env:
