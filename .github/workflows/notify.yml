@@ -14,19 +14,19 @@ jobs:
         with:
           node-version: 20
       - run: npm install @supabase/supabase-js web-push
-      - name: Run Morning Summary
-        if: github.event.schedule == '0 23 * * *'
-        run: node scripts/send-notifications.js morning
+      - name: Run Notification Script
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "0 23 * * *" ]; then
+            node scripts/send-notifications.js morning
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            node scripts/send-notifications.js morning
+          else
+            node scripts/send-notifications.js overdue
+          fi
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-      - name: Run Overdue Alert
-        if: github.event.schedule != '0 23 * * *'
-        run: node scripts/send-notifications.js overdue
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
-          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_SCHEDULE: ${{ github.event.schedule }}

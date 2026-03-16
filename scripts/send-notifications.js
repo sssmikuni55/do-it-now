@@ -20,6 +20,13 @@ async function sendNotifications() {
   if (type === 'morning') {
     // 毎朝のサマリー通知
     const { data: subs } = await supabase.from('push_subscriptions').select('*');
+    console.log(`Checking morning summary for ${subs?.length || 0} subscriptions.`);
+
+    // JSTでの「今日」を取得
+    const nowJst = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
+    const jstDateString = nowJst.toLocaleDateString("ja-JP", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+    console.log(`Current JST Date for summary: ${jstDateString}`);
+
     for (const sub of (subs || [])) {
       const { data: tasks } = await supabase
         .from('tasks')
@@ -27,18 +34,31 @@ async function sendNotifications() {
         .eq('user_id', sub.user_id)
         .neq('status', 'completed');
 
-      if (!tasks || tasks.length === 0) continue;
+      if (!tasks || tasks.length === 0) {
+        console.log(`No pending tasks for user: ${sub.user_id}`);
+        continue;
+      }
 
-      const now = new Date();
-      const todayTasks = tasks.filter(t => new Date(t.current_due_date).toDateString() === now.toDateString());
-      const overdueTasks = tasks.filter(t => new Date(t.current_due_date) < now);
+      // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
+      const todayTasks = tasks.filter(t => {
+        const dueDateJst = new Date(new Date(t.current_due_date).toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
+        const dueDateString = dueDateJst.toLocaleDateString("ja-JP", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+        return dueDateString === jstDateString;
+      });
+
+      const overdueTasks = tasks.filter(t => {
+        const dueDate = new Date(t.current_due_date);
+        return dueDate < new Date(); // 超過判定は絶対時間でOK
+      }).filter(t => !todayTasks.includes(t));
+
+      console.log(`User ${sub.user_id}: Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
 
       if (todayTasks.length === 0 && overdueTasks.length === 0) continue;
 
       let body = `おはようございます！本日の予定です\n`;
       if (todayTasks.length > 0) body += `・本日中: ${todayTasks.length}件\n`;
       if (overdueTasks.length > 0) body += `・期限超過: ${overdueTasks.length}件！\n`;
-      body += `今日も無理のない範囲で進めていきましょう。`;
+      body += `今日も今の「最初の一歩」だけ進めてみませんか？`;
 
       await sendPush(sub, { title: 'Do It Now', body });
       console.log(`Sent morning summary to: ${sub.endpoint}`);
