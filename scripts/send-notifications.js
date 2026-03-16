@@ -60,7 +60,7 @@ async function sendNotifications() {
       if (overdueTasks.length > 0) body += `・期限超過: ${overdueTasks.length}件！\n`;
       body += `今日も今の「最初の一歩」だけ進めてみませんか？`;
 
-      await sendPush(sub, { title: 'Do It Now', body });
+      await sendPush(sub, { title: 'Do It Now', body }, supabase);
       console.log(`Sent morning summary to: ${sub.endpoint}`);
     }
   } else {
@@ -84,7 +84,7 @@ async function sendNotifications() {
       const { data: subs } = await supabase.from('push_subscriptions').select('*').eq('user_id', task.user_id);
       for (const sub of (subs || [])) {
         const body = `「${task.title}」の期限を過ぎています。予定通り進んでいますか？難しければ少し見直してみましょう。`;
-        await sendPush(sub, { title: 'Do It Now', body, url: `/task/${task.id}` });
+        await sendPush(sub, { title: 'Do It Now', body, url: `/task/${task.id}` }, supabase);
         console.log(`Sent overdue alert for task "${task.title}" to: ${sub.endpoint}`);
       }
       await supabase.from('tasks').update({ is_overdue_notified: true }).eq('id', task.id);
@@ -93,7 +93,7 @@ async function sendNotifications() {
   console.log('Notification process completed.');
 }
 
-async function sendPush(sub, payload) {
+async function sendPush(sub, payload, supabase) {
   const subscription = {
     endpoint: sub.endpoint,
     keys: { auth: sub.auth_key, p256dh: sub.p256dh_key }
@@ -104,8 +104,10 @@ async function sendPush(sub, payload) {
     console.error('Push failed:', sub.endpoint);
     console.error('Error status code:', err.statusCode);
     console.error('Error body:', err.body);
+    
     if (err.statusCode === 410 || err.statusCode === 404) {
-      console.log('Subscription has expired or is no longer valid.');
+      console.log('Subscription has expired or is no longer valid. Deleting from DB...');
+      await supabase.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
     }
   }
 }
