@@ -55,10 +55,14 @@ async function sendNotifications() {
 
       if (todayTasks.length === 0 && overdueTasks.length === 0) continue;
 
-      let body = `おはようございます！本日の予定です\n`;
-      if (todayTasks.length > 0) body += `・本日中: ${todayTasks.length}件\n`;
-      if (overdueTasks.length > 0) body += `・期限超過: ${overdueTasks.length}件！\n`;
-      body += `今日も今の「最初の一歩」だけ進めてみませんか？`;
+      let body = `おはようございます！\n`;
+      if (todayTasks.length > 0) {
+        body += `【今日が期限】\n${todayTasks.map(t => `・${t.title}`).join('\n')}\n`;
+      }
+      if (overdueTasks.length > 0) {
+        body += `【期限超過】\n${overdueTasks.map(t => `・${t.title}`).join('\n')}\n`;
+      }
+      body += `\n今日も今の「最初の一歩」だけ進めてみませんか？`;
 
       await sendPush(sub, { title: 'Do It Now', body }, supabase);
       console.log(`Sent morning summary to: ${sub.endpoint}`);
