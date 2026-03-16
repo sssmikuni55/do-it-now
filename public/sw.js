@@ -1,4 +1,4 @@
-// Service Worker Version: v2 (Force update)
+// Service Worker Version: v3 (Force update with requireInteraction)
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : { title: 'Do It Now', body: 'タスクの時間です！' };
 
@@ -6,10 +6,11 @@ self.addEventListener('push', (event) => {
     body: data.body,
     icon: '/favicon.svg',
     badge: '/favicon.svg',
-    vibrate: [200, 100, 200, 100, 200], // より強調したパターン
+    vibrate: [200, 100, 200, 100, 200],
     tag: 'do-it-now-task',
     renotify: true,
     timestamp: Date.now(),
+    requireInteraction: true, // ユーザーが触るまで消さない（優先度向上）
     actions: [
       { action: 'open', title: 'アプリを開く' }
     ],
