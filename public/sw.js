@@ -1,4 +1,12 @@
-// Service Worker Version: v3 (Force update with requireInteraction)
+// Service Worker Version: v4 (Immediate activation)
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', (event) => {
+  event.waitUntil(self.clients.claim());
+});
+
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : { title: 'Do It Now', body: 'タスクの時間です！' };
 
