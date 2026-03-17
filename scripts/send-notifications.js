@@ -53,31 +53,27 @@ async function sendNotifications() {
     if (subError) console.error('Error fetching subscriptions:', subError);
     console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
-    // 安全にJSTの日付数値を取得する関数
-    const getJstDateIntSafe = (dateStr) => {
+    // 安全にJSTの日付数値を取得する関数（ロケールやサーバー設定に依存しない絶対オフセット方式）
+    const getJstDateIntSafe = (dateInput) => {
       try {
-        if (!dateStr) return null;
-        const date = new Date(dateStr);
+        if (!dateInput) return null;
+        const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
         if (isNaN(date.getTime())) return null;
 
-        const parts = new Intl.DateTimeFormat('ja-JP', {
-          timeZone: 'Asia/Tokyo',
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        }).formatToParts(date);
-        const y = parts.find(p => p.type === 'year').value;
-        const m = parts.find(p => p.type === 'month').value;
-        const d = parts.find(p => p.type === 'day').value;
-        return parseInt(y) * 10000 + parseInt(m) * 100 + parseInt(d);
+        // UTC時間に 9時間（JST）を加算して直接日付を取り出す
+        const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+        const y = jstDate.getUTCFullYear();
+        const m = jstDate.getUTCMonth() + 1;
+        const d = jstDate.getUTCDate();
+        return y * 10000 + m * 100 + d;
       } catch (e) {
-        console.error(`Error parsing date: ${dateStr}`, e);
+        console.error(`Error parsing date: ${dateInput}`, e);
         return null;
       }
     };
 
     const todayInt = getJstDateIntSafe(new Date());
-    console.log(`Debug: Current JST Date (Int): ${todayInt}`);
+    console.log(`Debug: Current JST Date (YYYYMMDD): ${todayInt}`);
 
     for (const sub of (subs || [])) {
       console.log(`Analysis for User: ${sub.user_id}`);
@@ -92,9 +88,8 @@ async function sendNotifications() {
         continue;
       }
 
-      console.log(`Debug: Total pending tasks for user ${sub.user_id}: ${tasks.length}`);
+      console.log(`Debug: Total pending tasks in DB: ${tasks.length}`);
 
-      // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = [];
       const overdueTasks = [];
 
@@ -108,14 +103,16 @@ async function sendNotifications() {
         const isToday = dueInt === todayInt;
         const isPast = dueInt < todayInt;
 
+        console.log(`Debug: Task "${t.title}" -> Due:${dueInt}, Today:${todayInt}, isToday:${isToday}, isPast:${isPast}`);
+
         if (isToday) todayTasks.push(t);
         else if (isPast) overdueTasks.push(t);
       }
 
-      console.log(`User ${sub.user_id}: Filtered Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
+      console.log(`User ${sub.user_id}: Final Filter Results -> Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
 
       if (todayTasks.length === 0 && overdueTasks.length === 0) {
-        console.log(`Debug: Conditions not met for user ${sub.user_id}. No notification sent.`);
+        console.log(`Debug: No tasks matched for today/overdue. Skipping notification.`);
         continue;
       }
 
