@@ -23,7 +23,8 @@ jobs:
           echo "Current JST Hour: $JST_HOUR"
 
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "push" ]; then
-            # 検証中：手動またはプッシュ時は常にサマリー通知を送信してログを確認
+            # 検証中：一発で届かない原因を完全特定すべく、テスト通知とサマリー通知を両方実行
+            node scripts/send-notifications.js test
             node scripts/send-notifications.js morning
           elif [ "$JST_HOUR" -eq 8 ]; then
             # 日本時間の朝8時台に実行された場合は、サマリー通知
