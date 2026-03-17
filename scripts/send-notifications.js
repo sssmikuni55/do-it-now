@@ -15,14 +15,34 @@ async function sendNotifications() {
     vapidPrivate
   );
 
-  const type = process.argv[2] || 'overdue'; // 'morning', 'overdue', or 'test'
+  const type = process.argv[2] || 'overdue'; // 'morning', 'overdue', 'test', or 'test_summary'
 
   if (type === 'test') {
     const { data: subs } = await supabase.from('push_subscriptions').select('*');
     console.log(`Test mode: Found ${subs?.length || 0} subscriptions.`);
     for (const sub of (subs || [])) {
-      await sendPush(sub, { title: 'Do It Now - Test', body: 'これは通知の疎通テストです。' }, supabase);
+      await sendPush(sub, { title: 'Do It Now - Test', body: 'これは一言の通知テストです。' }, supabase);
       console.log(`Sent test push to: ${sub.endpoint}`);
+    }
+    return;
+  }
+
+  if (type === 'test_summary') {
+    const { data: subs } = await supabase.from('push_subscriptions').select('*');
+    console.log(`Test Summary mode: Found ${subs?.length || 0} subscriptions.`);
+    for (const sub of (subs || [])) {
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed').limit(5);
+      console.log(`User ${sub.user_id}: Found ${tasks?.length || 0} pending tasks for test summary.`);
+      
+      let body = `【抽出不要テスト】\n`;
+      if (tasks && tasks.length > 0) {
+        body += tasks.map(t => `・${t.title}`).join('\n');
+      } else {
+        body += `タスクが見つかりませんでした。`;
+      }
+      
+      await sendPush(sub, { title: 'Do It Now - Summary Test', body }, supabase);
+      console.log(`Sent summary test push to: ${sub.endpoint}`);
     }
     return;
   }
@@ -60,6 +80,7 @@ async function sendNotifications() {
     console.log(`Debug: Current JST Date (Int): ${todayInt}`);
 
     for (const sub of (subs || [])) {
+      console.log(`Analysis for User: ${sub.user_id}`);
       const { data: tasks } = await supabase
         .from('tasks')
         .select('*')
@@ -67,11 +88,11 @@ async function sendNotifications() {
         .neq('status', 'completed');
 
       if (!tasks || tasks.length === 0) {
-        console.log(`Debug: No pending tasks found for user: ${sub.user_id}`);
+        console.log(`Debug: No pending tasks found in DB for user_id: ${sub.user_id}`);
         continue;
       }
 
-      console.log(`Debug: Found ${tasks.length} tasks for user ${sub.user_id}.`);
+      console.log(`Debug: Total pending tasks for user ${sub.user_id}: ${tasks.length}`);
 
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = [];
@@ -91,9 +112,12 @@ async function sendNotifications() {
         else if (isPast) overdueTasks.push(t);
       }
 
-      console.log(`User ${sub.user_id}: Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
+      console.log(`User ${sub.user_id}: Filtered Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
 
-      if (todayTasks.length === 0 && overdueTasks.length === 0) continue;
+      if (todayTasks.length === 0 && overdueTasks.length === 0) {
+        console.log(`Debug: Conditions not met for user ${sub.user_id}. No notification sent.`);
+        continue;
+      }
 
       let body = `おはようございます！\n`;
       if (todayTasks.length > 0) {
@@ -105,7 +129,7 @@ async function sendNotifications() {
       body += `\n今日も今の「最初の一歩」だけ進めてみませんか？`;
 
       await sendPush(sub, { title: 'Do It Now', body }, supabase);
-      console.log(`Sent morning summary to: ${sub.endpoint}`);
+      console.log(`Sent morning summary notification.`);
     }
   } else {
     // 全タスク数を確認（デバッグ用）
