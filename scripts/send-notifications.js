@@ -23,9 +23,18 @@ async function sendNotifications() {
     if (subError) console.error('Error fetching subscriptions:', subError);
     console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
-    // JSTでの「今日」を取得 (YYYY-MM-DD形式)
-    const nowJst = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
-    const jstDateString = nowJst.toISOString().slice(0, 10);
+    // JSTの日付文字列(YYYY-MM-DD)を取得する関数
+    const getJstDateString = (date) => {
+      const formatter = new Intl.DateTimeFormat('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      return formatter.format(date).replace(/\//g, '-');
+    };
+
+    const jstDateString = getJstDateString(new Date());
     console.log(`Debug: Current JST Date string: ${jstDateString}`);
 
     for (const sub of (subs || [])) {
@@ -43,17 +52,15 @@ async function sendNotifications() {
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = tasks.filter(t => {
         const dueDate = new Date(t.current_due_date);
-        const dueDateJst = new Date(dueDate.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
-        const dueDateString = dueDateJst.toISOString().slice(0, 10);
+        const dueDateString = getJstDateString(dueDate);
         const isToday = dueDateString === jstDateString;
-        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> dueDateString: ${dueDateString}, isToday: ${isToday}`);
+        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> JST: ${dueDateString}, isToday: ${isToday}`);
         return isToday;
       });
 
       const overdueTasks = tasks.filter(t => {
         const dueDate = new Date(t.current_due_date);
-        const dueDateJst = new Date(dueDate.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
-        const dueDateString = dueDateJst.toISOString().slice(0, 10);
+        const dueDateString = getJstDateString(dueDate);
         
         // 今日の文字列より小さければ明確に「過去（超過）」
         const isPast = dueDateString < jstDateString;
