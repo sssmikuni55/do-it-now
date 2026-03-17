@@ -23,20 +23,15 @@ async function sendNotifications() {
     if (subError) console.error('Error fetching subscriptions:', subError);
     console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
-    // JSTの日付文字列(YYYY-MM-DD)を取得する関数
-    const getJstDateString = (date) => {
-      const formatter = new Intl.DateTimeFormat('ja-JP', {
-        timeZone: 'Asia/Tokyo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      });
-      // 制御文字や曜日などを排除し、純粋な 'YYYY-MM-DD' のみを取り出す
-      return formatter.format(date).replace(/[^\d/]/g, '').replace(/\//g, '-');
+    // 指定したDateをJSTの「0時0分0秒」に変換したタイムスタンプを返す関数
+    const getJstMidnight = (date) => {
+      const d = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
     };
 
-    const jstDateString = getJstDateString(new Date());
-    console.log(`Debug: Current JST Date string: ${jstDateString}`);
+    const jstMidnight = getJstMidnight(new Date());
+    console.log(`Debug: Current JST Midnight (timestamp): ${jstMidnight} (${new Date(jstMidnight).toISOString()})`);
 
     for (const sub of (subs || [])) {
       const { data: tasks } = await supabase
@@ -51,22 +46,21 @@ async function sendNotifications() {
       }
 
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
-      const todayTasks = tasks.filter(t => {
-        const dueDate = new Date(t.current_due_date);
-        const dueDateString = getJstDateString(dueDate);
-        const isToday = dueDateString === jstDateString;
-        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> JST: ${dueDateString}, isToday: ${isToday}`);
-        return isToday;
-      });
+      const todayTasks = [];
+      const overdueTasks = [];
 
-      const overdueTasks = tasks.filter(t => {
+      for (const t of tasks) {
         const dueDate = new Date(t.current_due_date);
-        const dueDateString = getJstDateString(dueDate);
-        // 今日の文字列より小さければ明確に「過去（超過）」
-        const isPast = dueDateString < jstDateString;
-        console.log(`Debug: Task "${t.title}" isPast check: ${dueDateString} < ${jstDateString} = ${isPast}`);
-        return isPast;
-      });
+        const dueMidnight = getJstMidnight(dueDate);
+        
+        const isToday = dueMidnight === jstMidnight;
+        const isPast = dueMidnight < jstMidnight;
+
+        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> JST Mid: ${dueMidnight}, isToday: ${isToday}, isPast: ${isPast}`);
+
+        if (isToday) todayTasks.push(t);
+        else if (isPast) overdueTasks.push(t);
+      }
 
       console.log(`User ${sub.user_id}: Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
 
