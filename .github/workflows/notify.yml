@@ -1,7 +1,7 @@
 name: Nightly/Hourly Notifications
 on:
   schedule:
-    - cron: '15 0 * * *' # 日本時間 09:15 (UTC 00:15)
+    - cron: '15 1 * * *' # 日本時間 10:15 (UTC 01:15)
     - cron: '0 * * * *'  # 1時間おき
   workflow_dispatch: # 手動実行用
 
@@ -23,8 +23,8 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # 手動実行時は常にサマリー通知を送信してテストしやすくする
             node scripts/send-notifications.js morning
-          elif [ "$JST_HOUR" -eq 8 ] || [ "$JST_HOUR" -eq 9 ]; then
-            # 日本時間の朝8時台または9時台（テスト用）に実行された場合は、サマリー通知
+          elif [ "$JST_HOUR" -eq 8 ] || [ "$JST_HOUR" -eq 9 ] || [ "$JST_HOUR" -eq 10 ]; then
+            # 日本時間の朝8〜10時台（テスト用）に実行された場合は、サマリー通知
             node scripts/send-notifications.js morning
           else
             # それ以外の時間は超過通知のみ
