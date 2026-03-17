@@ -15,7 +15,17 @@ async function sendNotifications() {
     vapidPrivate
   );
 
-  const type = process.argv[2] || 'overdue'; // 'morning' or 'overdue'
+  const type = process.argv[2] || 'overdue'; // 'morning', 'overdue', or 'test'
+
+  if (type === 'test') {
+    const { data: subs } = await supabase.from('push_subscriptions').select('*');
+    console.log(`Test mode: Found ${subs?.length || 0} subscriptions.`);
+    for (const sub of (subs || [])) {
+      await sendPush(sub, { title: 'Do It Now - Test', body: 'これは通知の疎通テストです。' }, supabase);
+      console.log(`Sent test push to: ${sub.endpoint}`);
+    }
+    return;
+  }
 
   if (type === 'morning') {
     // 毎朝のサマリー通知
@@ -23,15 +33,22 @@ async function sendNotifications() {
     if (subError) console.error('Error fetching subscriptions:', subError);
     console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
-    // 指定したDateをJSTの「0時0分0秒」に変換したタイムスタンプを返す関数
-    const getJstMidnight = (date) => {
-      const d = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' }));
-      d.setHours(0, 0, 0, 0);
-      return d.getTime();
+    // 指定したDateをJSTのYYYYMMDD形式の数値で返す関数
+    const getJstDateInt = (date) => {
+      const parts = new Intl.DateTimeFormat('ja-JP', {
+        timeZone: 'Asia/Tokyo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(date);
+      const y = parts.find(p => p.type === 'year').value;
+      const m = parts.find(p => p.type === 'month').value;
+      const d = parts.find(p => p.type === 'day').value;
+      return parseInt(y) * 10000 + parseInt(m) * 100 + parseInt(d);
     };
 
-    const jstMidnight = getJstMidnight(new Date());
-    console.log(`Debug: Current JST Midnight (timestamp): ${jstMidnight} (${new Date(jstMidnight).toISOString()})`);
+    const todayInt = getJstDateInt(new Date());
+    console.log(`Debug: Current JST Date (Int): ${todayInt}`);
 
     for (const sub of (subs || [])) {
       const { data: tasks } = await supabase
@@ -53,12 +70,12 @@ async function sendNotifications() {
 
       for (const t of tasks) {
         const dueDate = new Date(t.current_due_date);
-        const dueMidnight = getJstMidnight(dueDate);
+        const dueInt = getJstDateInt(dueDate);
         
-        const isToday = dueMidnight === jstMidnight;
-        const isPast = dueMidnight < jstMidnight;
+        const isToday = dueInt === todayInt;
+        const isPast = dueInt < todayInt;
 
-        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> JST Mid: ${dueMidnight}, isToday: ${isToday}, isPast: ${isPast}`);
+        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> DueInt: ${dueInt}, TodayInt: ${todayInt}, isToday: ${isToday}, isPast: ${isPast}`);
 
         if (isToday) todayTasks.push(t);
         else if (isPast) overdueTasks.push(t);
