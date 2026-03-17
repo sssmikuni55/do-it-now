@@ -1,7 +1,5 @@
 name: Nightly/Hourly Notifications
 on:
-  push:
-    branches: [ main ]
   schedule:
     - cron: '0 23 * * *' # 日本時間 08:00 (UTC 23:00)
     - cron: '0 * * * *'  # 1時間おき
@@ -17,26 +15,23 @@ jobs:
           node-version: 20
       - run: npm install @supabase/supabase-js web-push
       - name: Run Notification Script
-        run: |
-          # JST（日本時間）の「時」を先頭の0を省いて取得（0, 1, 2... 8... 23）
-          JST_HOUR=$(TZ=Asia/Tokyo date +%-H)
-          echo "Current JST Hour: $JST_HOUR"
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [ "${{ github.event_name }}" = "push" ]; then
-            # 検証中：全タスク送信（test_summary）と、日付判定あり（morning）を両方試行
-            node scripts/send-notifications.js test_summary
-            node scripts/send-notifications.js morning
-          elif [ "$JST_HOUR" -eq 8 ]; then
-            # 日本時間の朝8時台に実行された場合は、サマリー通知
-            node scripts/send-notifications.js morning
-          else
-            # それ以外の時間は超過通知のみ
-            node scripts/send-notifications.js overdue
-          fi
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-          GITHUB_EVENT_NAME: ${{ github.event_name }}
-          GITHUB_SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          # GitHub ActionsランナーはUTCなので、+9時間でJSTに変換
+          JST_HOUR=$(date -d "+9 hours" +"%H")
+          echo "Current JST Hour: $JST_HOUR"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # 手動実行時はサマリー通知を送信
+            node scripts/send-notifications.js morning
+          elif [ "$JST_HOUR" -eq 8 ]; then
+            # 日本時間の朝8時台に実行された場合は、サマリー通知
+            node scripts/send-notifications.js morning
+          else
+            # それ以外の時間は超過通知
+            node scripts/send-notifications.js overdue
+          fi

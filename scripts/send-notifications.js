@@ -15,34 +15,7 @@ async function sendNotifications() {
     vapidPrivate
   );
 
-  const type = process.argv[2] || 'overdue'; // 'morning', 'overdue', 'test', or 'test_summary'
-
-  if (type === 'test') {
-    const { data: subs } = await supabase.from('push_subscriptions').select('*');
-    console.log(`Test mode: Found ${subs?.length || 0} subscriptions.`);
-    for (const sub of (subs || [])) {
-      await sendPush(sub, { title: 'Do It Now - Test', body: 'これは一言の通知テストです。' }, supabase);
-      console.log(`Sent test push to: ${sub.endpoint}`);
-    }
-    return;
-  }
-
-  if (type === 'test_summary') {
-    const { data: subs } = await supabase.from('push_subscriptions').select('*');
-    for (const sub of (subs || [])) {
-      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed').limit(3);
-      
-      let body = `【日付データ解析】\n`;
-      if (tasks && tasks.length > 0) {
-        body += tasks.map(t => `${t.title} / Due: ${t.current_due_date}`).join('\n');
-      } else {
-        body += `タスクなし`;
-      }
-      
-      await sendPush(sub, { title: 'Do It Now - Data Check', body }, supabase);
-    }
-    return;
-  }
+  const type = process.argv[2] || 'overdue'; // 'morning' or 'overdue'
 
   if (type === 'morning') {
     // 毎朝のサマリー通知
