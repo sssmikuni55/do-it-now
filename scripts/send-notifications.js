@@ -31,7 +31,8 @@ async function sendNotifications() {
         month: '2-digit',
         day: '2-digit'
       });
-      return formatter.format(date).replace(/\//g, '-');
+      // 制御文字や曜日などを排除し、純粋な 'YYYY-MM-DD' のみを取り出す
+      return formatter.format(date).replace(/[^\d/]/g, '').replace(/\//g, '-');
     };
 
     const jstDateString = getJstDateString(new Date());
@@ -61,9 +62,9 @@ async function sendNotifications() {
       const overdueTasks = tasks.filter(t => {
         const dueDate = new Date(t.current_due_date);
         const dueDateString = getJstDateString(dueDate);
-        
         // 今日の文字列より小さければ明確に「過去（超過）」
         const isPast = dueDateString < jstDateString;
+        console.log(`Debug: Task "${t.title}" isPast check: ${dueDateString} < ${jstDateString} = ${isPast}`);
         return isPast;
       });
 
