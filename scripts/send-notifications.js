@@ -19,8 +19,9 @@ async function sendNotifications() {
 
   if (type === 'morning') {
     // 毎朝のサマリー通知
-    const { data: subs } = await supabase.from('push_subscriptions').select('*');
-    console.log(`Checking morning summary for ${subs?.length || 0} subscriptions.`);
+    const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
+    if (subError) console.error('Error fetching subscriptions:', subError);
+    console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
     // JSTでの「今日」を取得
     const nowJst = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
@@ -35,14 +36,16 @@ async function sendNotifications() {
         .neq('status', 'completed');
 
       if (!tasks || tasks.length === 0) {
-        console.log(`No pending tasks for user: ${sub.user_id}`);
+        console.log(`Debug: No pending tasks found for user: ${sub.user_id}`);
         continue;
       }
+      console.log(`Debug: Found ${tasks.length} pending tasks for user: ${sub.user_id}`);
 
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = tasks.filter(t => {
         const dueDateJst = new Date(new Date(t.current_due_date).toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
         const dueDateString = dueDateJst.toLocaleDateString("ja-JP", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
+        console.log(`Debug: Task "${t.title}" due=${t.current_due_date} -> JST string=${dueDateString} (Today=${jstDateString})`);
         return dueDateString === jstDateString;
       });
 
