@@ -1,8 +1,7 @@
-name: Nightly/Hourly Notifications
+name: Nightly Notifications
 on:
   schedule:
     - cron: '0 22 * * *' # 日本時間 07:00 (UTC 22:00)
-    - cron: '0 * * * *'  # 1時間おき
   workflow_dispatch: # 手動実行用
 
 jobs:
@@ -21,17 +20,5 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
         run: |
-          # GitHub ActionsランナーはUTCなので、+9時間でJSTに変換
-          JST_HOUR=$(date -d "+9 hours" +"%H")
-          echo "Current JST Hour: $JST_HOUR"
-
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 手動実行時はサマリー通知を送信
-            node scripts/send-notifications.js morning
-          elif [ "$JST_HOUR" = "07" ]; then
-            # 日本時間の朝7時台に実行された場合は、サマリー通知
-            node scripts/send-notifications.js morning
-          else
-            # それ以外の時間は超過通知
-            node scripts/send-notifications.js overdue
-          fi
+          # 常にサマリー通知（期限当日・超過・近日中を同梱）を送信
+          node scripts/send-notifications.js morning

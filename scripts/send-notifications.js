@@ -107,42 +107,6 @@ async function sendNotifications() {
       await sendPush(sub, { title: 'Do It Now', body }, supabase);
       console.log(`Sent morning summary notification.`);
     }
-  } else {
-    // 全タスク数を確認（デバッグ用）
-    const { count: allTasksCount } = await supabase.from('tasks').select('*', { count: 'exact', head: true });
-    console.log(`Total tasks in DB: ${allTasksCount}`);
-
-    // 期限超過時の単発通知
-    const now = new Date();
-    const { data: overdueTasks, error: taskError } = await supabase
-    // 期限超過通知（毎時実行される想定）
-    const { data: subs } = await supabase.from('push_subscriptions').select('*');
-    
-    // 安全にJSTの日付数値を取得する関数（共通化のため内部定義）
-    const getJstDateIntSafe = (dateInput) => {
-      try {
-        if (!dateInput) return null;
-        const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-        if (isNaN(date.getTime())) return null;
-        const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
-        return jstDate.getUTCFullYear() * 10000 + (jstDate.getUTCMonth() + 1) * 100 + jstDate.getUTCDate();
-      } catch (e) { return null; }
-    };
-
-    const todayInt = getJstDateIntSafe(new Date());
-
-    for (const sub of (subs || [])) {
-      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed');
-      const overdueTasks = (tasks || []).filter(t => {
-        const dueInt = getJstDateIntSafe(t.current_due_date);
-        return dueInt !== null && dueInt < todayInt;
-      });
-
-      if (overdueTasks.length > 0) {
-        await sendPush(sub, { title: 'Do It Now - 期限超過', body: `${overdueTasks.length}件のタスクが期限を過ぎています。確認してみましょう。` }, supabase);
-        console.log(`Sent overdue alert for user ${sub.user_id} with ${overdueTasks.length} tasks.`);
-      }
-    }
   }
   console.log('Notification process completed.');
 }
