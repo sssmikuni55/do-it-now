@@ -45,6 +45,8 @@ async function sendNotifications() {
         continue;
       }
 
+      console.log(`Debug: Tasks for user ${sub.user_id}: ${tasks.map(t => `${t.title}(${t.status})`).join(', ')}`);
+
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = [];
       const overdueTasks = [];
