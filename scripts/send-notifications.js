@@ -43,7 +43,12 @@ async function sendNotifications() {
     };
 
     const todayInt = getJstDateIntSafe(new Date());
-    console.log(`Debug: Current JST Date (YYYYMMDD): ${todayInt}`);
+    // 3日後の日付数値を取得
+    const threeDaysLater = new Date();
+    threeDaysLater.setDate(threeDaysLater.getDate() + 3);
+    const threeDaysLaterInt = getJstDateIntSafe(threeDaysLater);
+
+    console.log(`Debug: Current JST Date: ${todayInt}, 3 Days Later: ${threeDaysLaterInt}`);
 
     for (const sub of (subs || [])) {
       console.log(`Analysis for User: ${sub.user_id}`);
@@ -62,6 +67,7 @@ async function sendNotifications() {
 
       const todayTasks = [];
       const overdueTasks = [];
+      const upcomingTasks = [];
 
       for (const t of tasks) {
         const dueInt = getJstDateIntSafe(t.current_due_date);
@@ -70,19 +76,19 @@ async function sendNotifications() {
           continue;
         }
         
-        const isToday = dueInt === todayInt;
-        const isPast = dueInt < todayInt;
-
-        console.log(`Debug: Task "${t.title}" -> Due:${dueInt}, Today:${todayInt}, isToday:${isToday}, isPast:${isPast}`);
-
-        if (isToday) todayTasks.push(t);
-        else if (isPast) overdueTasks.push(t);
+        if (dueInt === todayInt) {
+          todayTasks.push(t);
+        } else if (dueInt < todayInt) {
+          overdueTasks.push(t);
+        } else if (dueInt <= threeDaysLaterInt) {
+          upcomingTasks.push(t);
+        }
       }
 
-      console.log(`User ${sub.user_id}: Final Filter Results -> Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
+      console.log(`User ${sub.user_id}: Final Filter Results -> Today=${todayTasks.length}, Overdue=${overdueTasks.length}, Upcoming=${upcomingTasks.length}`);
 
-      if (todayTasks.length === 0 && overdueTasks.length === 0) {
-        console.log(`Debug: No tasks matched for today/overdue. Skipping notification.`);
+      if (todayTasks.length === 0 && overdueTasks.length === 0 && upcomingTasks.length === 0) {
+        console.log(`Debug: No tasks matched for today/overdue/upcoming. Skipping notification.`);
         continue;
       }
 
@@ -91,7 +97,10 @@ async function sendNotifications() {
         body += `【今日が期限】\n${todayTasks.map(t => `・${t.title}`).join('\n')}\n`;
       }
       if (overdueTasks.length > 0) {
-        body += `【期限超過】\n${overdueTasks.map(t => `・${t.title}`).join('\n')}\n`;
+        body += `【期限超過中】\n${overdueTasks.map(t => `・${t.title}`).join('\n')}\n`;
+      }
+      if (upcomingTasks.length > 0) {
+        body += `【近日中の予定】\n${upcomingTasks.map(t => `・${t.title}`).join('\n')}\n`;
       }
       body += `\n今日も今の「最初の一歩」だけ進めてみませんか？`;
 
@@ -106,23 +115,33 @@ async function sendNotifications() {
     // 期限超過時の単発通知
     const now = new Date();
     const { data: overdueTasks, error: taskError } = await supabase
-      .from('tasks')
-      .select('*')
-      .eq('status', 'todo')
-      .lt('current_due_date', now.toISOString())
-      .or('is_overdue_notified.eq.false,is_overdue_notified.is.null'); // null または false を対象
+    // 期限超過通知（毎時実行される想定）
+    const { data: subs } = await supabase.from('push_subscriptions').select('*');
+    
+    // 安全にJSTの日付数値を取得する関数（共通化のため内部定義）
+    const getJstDateIntSafe = (dateInput) => {
+      try {
+        if (!dateInput) return null;
+        const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+        if (isNaN(date.getTime())) return null;
+        const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+        return jstDate.getUTCFullYear() * 10000 + (jstDate.getUTCMonth() + 1) * 100 + jstDate.getUTCDate();
+      } catch (e) { return null; }
+    };
 
-    if (taskError) console.error('Task fetch error:', taskError);
-    console.log(`Found ${overdueTasks?.length || 0} overdue tasks to notify.`);
+    const todayInt = getJstDateIntSafe(new Date());
 
-    for (const task of (overdueTasks || [])) {
-      const { data: subs } = await supabase.from('push_subscriptions').select('*').eq('user_id', task.user_id);
-      for (const sub of (subs || [])) {
-        const body = `「${task.title}」の期限を過ぎています。予定通り進んでいますか？難しければ少し見直してみましょう。`;
-        await sendPush(sub, { title: 'Do It Now', body, url: `/task/${task.id}` }, supabase);
-        console.log(`Sent overdue alert for task "${task.title}" to: ${sub.endpoint}`);
+    for (const sub of (subs || [])) {
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed');
+      const overdueTasks = (tasks || []).filter(t => {
+        const dueInt = getJstDateIntSafe(t.current_due_date);
+        return dueInt !== null && dueInt < todayInt;
+      });
+
+      if (overdueTasks.length > 0) {
+        await sendPush(sub, { title: 'Do It Now - 期限超過', body: `${overdueTasks.length}件のタスクが期限を過ぎています。確認してみましょう。` }, supabase);
+        console.log(`Sent overdue alert for user ${sub.user_id} with ${overdueTasks.length} tasks.`);
       }
-      await supabase.from('tasks').update({ is_overdue_notified: true }).eq('id', task.id);
     }
   }
   console.log('Notification process completed.');
