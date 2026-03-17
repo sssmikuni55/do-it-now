@@ -33,21 +33,30 @@ async function sendNotifications() {
     if (subError) console.error('Error fetching subscriptions:', subError);
     console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
-    // 指定したDateをJSTのYYYYMMDD形式の数値で返す関数
-    const getJstDateInt = (date) => {
-      const parts = new Intl.DateTimeFormat('ja-JP', {
-        timeZone: 'Asia/Tokyo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-      }).formatToParts(date);
-      const y = parts.find(p => p.type === 'year').value;
-      const m = parts.find(p => p.type === 'month').value;
-      const d = parts.find(p => p.type === 'day').value;
-      return parseInt(y) * 10000 + parseInt(m) * 100 + parseInt(d);
+    // 安全にJSTの日付数値を取得する関数
+    const getJstDateIntSafe = (dateStr) => {
+      try {
+        if (!dateStr) return null;
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) return null;
+
+        const parts = new Intl.DateTimeFormat('ja-JP', {
+          timeZone: 'Asia/Tokyo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).formatToParts(date);
+        const y = parts.find(p => p.type === 'year').value;
+        const m = parts.find(p => p.type === 'month').value;
+        const d = parts.find(p => p.type === 'day').value;
+        return parseInt(y) * 10000 + parseInt(m) * 100 + parseInt(d);
+      } catch (e) {
+        console.error(`Error parsing date: ${dateStr}`, e);
+        return null;
+      }
     };
 
-    const todayInt = getJstDateInt(new Date());
+    const todayInt = getJstDateIntSafe(new Date());
     console.log(`Debug: Current JST Date (Int): ${todayInt}`);
 
     for (const sub of (subs || [])) {
@@ -62,20 +71,21 @@ async function sendNotifications() {
         continue;
       }
 
-      console.log(`Debug: Tasks for user ${sub.user_id}: ${tasks.map(t => `${t.title}(${t.status})`).join(', ')}`);
+      console.log(`Debug: Found ${tasks.length} tasks for user ${sub.user_id}.`);
 
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = [];
       const overdueTasks = [];
 
       for (const t of tasks) {
-        const dueDate = new Date(t.current_due_date);
-        const dueInt = getJstDateInt(dueDate);
+        const dueInt = getJstDateIntSafe(t.current_due_date);
+        if (dueInt === null) {
+          console.log(`Debug: Skipping task "${t.title}" due to invalid date: ${t.current_due_date}`);
+          continue;
+        }
         
         const isToday = dueInt === todayInt;
         const isPast = dueInt < todayInt;
-
-        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> DueInt: ${dueInt}, TodayInt: ${todayInt}, isToday: ${isToday}, isPast: ${isPast}`);
 
         if (isToday) todayTasks.push(t);
         else if (isPast) overdueTasks.push(t);
