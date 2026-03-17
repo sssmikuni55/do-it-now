@@ -23,10 +23,10 @@ async function sendNotifications() {
     if (subError) console.error('Error fetching subscriptions:', subError);
     console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
-    // JSTでの「今日」を取得
+    // JSTでの「今日」を取得 (YYYY-MM-DD形式)
     const nowJst = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
-    const jstDateString = nowJst.toLocaleDateString("ja-JP", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-    console.log(`Current JST Date for summary: ${jstDateString}`);
+    const jstDateString = nowJst.toISOString().slice(0, 10);
+    console.log(`Debug: Current JST Date string: ${jstDateString}`);
 
     for (const sub of (subs || [])) {
       const { data: tasks } = await supabase
@@ -39,20 +39,26 @@ async function sendNotifications() {
         console.log(`Debug: No pending tasks found for user: ${sub.user_id}`);
         continue;
       }
-      console.log(`Debug: Found ${tasks.length} pending tasks for user: ${sub.user_id}`);
 
       // 期限がJSTの「今日」か、すでに「超過」しているものを抽出
       const todayTasks = tasks.filter(t => {
-        const dueDateJst = new Date(new Date(t.current_due_date).toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
-        const dueDateString = dueDateJst.toLocaleDateString("ja-JP", { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\//g, '-');
-        console.log(`Debug: Task "${t.title}" due=${t.current_due_date} -> JST string=${dueDateString} (Today=${jstDateString})`);
-        return dueDateString === jstDateString;
+        const dueDate = new Date(t.current_due_date);
+        const dueDateJst = new Date(dueDate.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
+        const dueDateString = dueDateJst.toISOString().slice(0, 10);
+        const isToday = dueDateString === jstDateString;
+        console.log(`Debug: Task "${t.title}" (due: ${t.current_due_date}) -> dueDateString: ${dueDateString}, isToday: ${isToday}`);
+        return isToday;
       });
 
       const overdueTasks = tasks.filter(t => {
         const dueDate = new Date(t.current_due_date);
-        return dueDate < new Date(); // 超過判定は絶対時間でOK
-      }).filter(t => !todayTasks.includes(t));
+        const dueDateJst = new Date(dueDate.toLocaleString("en-US", {timeZone: "Asia/Tokyo"}));
+        const dueDateString = dueDateJst.toISOString().slice(0, 10);
+        
+        // 今日の文字列より小さければ明確に「過去（超過）」
+        const isPast = dueDateString < jstDateString;
+        return isPast;
+      });
 
       console.log(`User ${sub.user_id}: Today=${todayTasks.length}, Overdue=${overdueTasks.length}`);
 
