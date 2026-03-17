@@ -51,7 +51,11 @@ const Settings = () => {
         if (subscription) {
           await subscription.unsubscribe();
           // Supabase から削除
-          await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+          const { error } = await supabase.from('push_subscriptions').delete().eq('endpoint', subscription.endpoint);
+          if (error) {
+            console.error('Delete failed:', error);
+            throw new Error('通知解除の保存に失敗しました。');
+          }
         }
         setIsPushEnabled(false);
       } else {
@@ -66,20 +70,30 @@ const Settings = () => {
 
         // Supabase に保存
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const keys = subscription.toJSON().keys;
-          await supabase.from('push_subscriptions').insert([{
-            user_id: user.id,
-            endpoint: subscription.endpoint,
-            auth_key: keys?.auth,
-            p256dh_key: keys?.p256dh
-          }]);
+        if (!user) {
+          throw new Error('ログイン状態が確認できません。一度ログアウトして再度ログインしてください。');
         }
+
+        const keys = subscription.toJSON().keys;
+        const { error: insertError } = await supabase.from('push_subscriptions').insert([{
+          user_id: user.id,
+          endpoint: subscription.endpoint,
+          auth_key: keys?.auth,
+          p256dh_key: keys?.p256dh
+        }]);
+
+        if (insertError) {
+          console.error('Insert failed:', insertError);
+          throw new Error(`送信先の保存に失敗しました: ${insertError.message}`);
+        }
+
         setIsPushEnabled(true);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Push operation failed:', err);
-      alert('通知の設定に失敗しました。ブラウザの設定で通知が許可されているか確認してください。');
+      alert(err.message || '通知の設定に失敗しました。ブラウザの設定で通知が許可されているか確認してください。');
+      // 状態を再確認
+      await checkPushSubscription();
     } finally {
       setPushLoading(false);
     }
