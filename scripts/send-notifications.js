@@ -29,20 +29,17 @@ async function sendNotifications() {
 
   if (type === 'test_summary') {
     const { data: subs } = await supabase.from('push_subscriptions').select('*');
-    console.log(`Test Summary mode: Found ${subs?.length || 0} subscriptions.`);
     for (const sub of (subs || [])) {
-      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed').limit(5);
-      console.log(`User ${sub.user_id}: Found ${tasks?.length || 0} pending tasks for test summary.`);
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed').limit(3);
       
-      let body = `【抽出不要テスト】\n`;
+      let body = `【日付データ解析】\n`;
       if (tasks && tasks.length > 0) {
-        body += tasks.map(t => `・${t.title}`).join('\n');
+        body += tasks.map(t => `${t.title} / Due: ${t.current_due_date}`).join('\n');
       } else {
-        body += `タスクが見つかりませんでした。`;
+        body += `タスクなし`;
       }
       
-      await sendPush(sub, { title: 'Do It Now - Summary Test', body }, supabase);
-      console.log(`Sent summary test push to: ${sub.endpoint}`);
+      await sendPush(sub, { title: 'Do It Now - Data Check', body }, supabase);
     }
     return;
   }
