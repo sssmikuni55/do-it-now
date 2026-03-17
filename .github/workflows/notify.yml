@@ -3,6 +3,9 @@ on:
   schedule:
     - cron: '15 1 * * *' # 日本時間 10:15 (UTC 01:15)
     - cron: '0 * * * *'  # 1時間おき
+  push:
+    branches:
+      - main
   workflow_dispatch: # 手動実行用
 
 jobs:
