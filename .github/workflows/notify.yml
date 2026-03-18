@@ -1,7 +1,7 @@
 name: Nightly Notifications
 on:
   schedule:
-    - cron: '0 22 * * *' # 日本時間 07:00 (UTC 22:00)
+    - cron: '15 21 * * *' # 日本時間 06:15 (UTC 21:15) 混雑回避と遅延考慮のため前倒し
   workflow_dispatch: # 手動実行用
 
 jobs:
