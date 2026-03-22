@@ -200,17 +200,17 @@ const TaskDetail = () => {
                 </div>
                 {st.status !== 'completed' && (
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-[9px] bg-secondary px-2 py-0.5 rounded font-bold uppercase text-muted-foreground">
+                    <span className="text-[10px] bg-secondary px-2 py-0.5 rounded-md font-bold uppercase text-muted-foreground border border-border/50">
                       {formatDisplayDate(st.current_due_date)}
                     </span>
-                    <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase border ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold uppercase border ${
                       st.importance === 'high' ? 'bg-destructive/10 text-destructive border-destructive/20' :
                       st.importance === 'medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
                       'bg-blue-500/10 text-blue-500 border-blue-500/20'
                     }`}>
                       {st.importance === 'high' ? 'HIGH' : st.importance === 'medium' ? 'MED' : 'LOW'}
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full font-bold border ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${
                       st.resistance === 'high' ? 'bg-resistance-high/10 text-resistance-high border-resistance-high/20' :
                       st.resistance === 'medium' ? 'bg-resistance-medium/10 text-resistance-medium border-resistance-medium/20' :
                       'bg-resistance-low/10 text-resistance-low border-resistance-low/20'
