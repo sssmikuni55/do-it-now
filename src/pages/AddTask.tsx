@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, AlertTriangle, Zap, Footprints, Save } from 'lucide-react';
 import { supabase } from '../utils/supabase';
+import { getEndOfDay } from '../utils/dateUtils';
 
 const AddTask = () => {
   const navigate = useNavigate();
@@ -23,22 +24,25 @@ const AddTask = () => {
 
     try {
       // Calculate due date
-      let dueDate = new Date();
-      if (formData.due_date_type === 'today') {
-        dueDate.setHours(23, 59, 59, 0);
-      } else if (formData.due_date_type === 'tomorrow') {
-        dueDate.setDate(dueDate.getDate() + 1);
-        dueDate.setHours(23, 59, 59, 0);
+      let dueDateRaw: Date | string = new Date();
+      if (formData.due_date_type === 'tomorrow') {
+        const d = new Date();
+        d.setDate(d.getDate() + 1);
+        dueDateRaw = d;
       } else if (formData.due_date_type === 'week') {
-        dueDate.setDate(dueDate.getDate() + 7);
-        dueDate.setHours(23, 59, 59, 0);
+        const d = new Date();
+        d.setDate(d.getDate() + 7);
+        dueDateRaw = d;
       } else if (formData.due_date_type === 'month') {
-        dueDate.setMonth(dueDate.getMonth() + 1);
-        dueDate.setHours(23, 59, 59, 0);
+        const d = new Date();
+        d.setMonth(d.getMonth() + 1);
+        dueDateRaw = d;
       } else if (formData.due_date_type === 'custom' && formData.custom_due_date) {
-        dueDate = new Date(formData.custom_due_date);
-        dueDate.setHours(23, 59, 59, 0);
+        dueDateRaw = formData.custom_due_date;
       }
+      
+      const dueDateIso = getEndOfDay(dueDateRaw);
+      const dueDate = new Date(dueDateIso);
       
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);

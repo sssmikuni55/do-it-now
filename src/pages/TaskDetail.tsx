@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Circle, CheckCircle2, Zap, AlertTriangle, Footprints, History, Plus, Trash2, Edit3 } from 'lucide-react';
 import { ConfirmDialog } from '../components/ConfirmDialog';
 import { useTasks } from '../hooks/useTasks';
+import { getEndOfDay, formatDisplayDate } from '../utils/dateUtils';
 
 const TaskDetail = () => {
   const { id } = useParams();
@@ -47,7 +48,7 @@ const TaskDetail = () => {
         parent_id: id,
         importance: subtaskDetails.importance,
         resistance: subtaskDetails.resistance,
-        current_due_date: new Date(subtaskDetails.due_date).toISOString(),
+        current_due_date: getEndOfDay(subtaskDetails.due_date),
         first_step: subtaskDetails.first_step,
       });
       setNewSubtaskTitle('');
@@ -200,7 +201,7 @@ const TaskDetail = () => {
                 {st.status !== 'completed' && (
                   <div className="flex flex-wrap gap-2">
                     <span className="text-[9px] bg-secondary px-2 py-0.5 rounded font-bold uppercase text-muted-foreground">
-                      {new Date(st.current_due_date).toLocaleDateString()}
+                      {formatDisplayDate(st.current_due_date)}
                     </span>
                     <span className={`text-[9px] px-2 py-0.5 rounded font-bold uppercase border ${
                       st.importance === 'high' ? 'bg-destructive/10 text-destructive border-destructive/20' :

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Calendar, AlertTriangle, Zap, Footprints, Save } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
+import { getEndOfDay } from '../utils/dateUtils';
 
 const EditTask = () => {
   const { id } = useParams();
@@ -40,8 +41,8 @@ const EditTask = () => {
     setLoading(true);
 
     try {
-      let dueDate = new Date(formData.custom_due_date);
-      dueDate.setHours(23, 59, 59, 0);
+      const dueDateIso = getEndOfDay(formData.custom_due_date);
+      const dueDate = new Date(dueDateIso);
 
       const startOfToday = new Date();
       startOfToday.setHours(0, 0, 0, 0);

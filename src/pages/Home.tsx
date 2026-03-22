@@ -5,6 +5,7 @@ import { useTasks } from '../hooks/useTasks';
 import type { Task } from '../hooks/useTasks';
 import { ExcuseModal } from '../components/ExcuseModal';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { isOverdue, getDiffDays, formatDisplayDate } from '../utils/dateUtils';
 
 const SwipeStep = ({ task, onComplete }: { task: Task, onComplete: () => void }) => {
   const [startX, setStartX] = useState<number | null>(null);
@@ -109,10 +110,9 @@ const Home = () => {
   useEffect(() => {
     // Check for overdue tasks (including subtasks)
     if (!loading && tasks.length > 0) {
-      const now = new Date();
       const overdue = tasks.find(t => 
         t.status !== 'completed' && 
-        new Date(t.current_due_date) < now
+        isOverdue(t.current_due_date)
       );
       if (overdue) {
         setOverdueTask(overdue);
@@ -132,13 +132,9 @@ const Home = () => {
       // 期限のチェック
       if (!t.current_due_date) return true; // 期限なしは常に表示
       
-      const dueDate = new Date(t.current_due_date);
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(23, 59, 59, 999);
-      
-      // 期限が明日23:59:59までなら表示（今日・明日・超過を含む）
-      return dueDate <= tomorrow;
+      const diffDays = getDiffDays(t.current_due_date);
+      // 期限が明日（1日後）までなら表示（今日・明日・超過を含む）
+      return diffDays <= 1;
     })
     .sort((a, b) => {
       if (!a.current_due_date) return 1;
@@ -224,28 +220,17 @@ const Home = () => {
             <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground font-medium">
               <span className={`flex items-center gap-1 ${
                 (() => {
-                  const now = new Date();
-                  now.setHours(0,0,0,0);
-                  const dueDate = new Date(task.current_due_date);
-                  dueDate.setHours(0,0,0,0);
-                  const diffTime = dueDate.getTime() - now.getTime();
-                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                  return diffDays <= 2 ? 'text-destructive font-bold' : '';
+                  const diffDays = getDiffDays(task.current_due_date);
+                  return diffDays <= 1 ? 'text-destructive font-bold' : '';
                 })()
               }`}>
                 <Clock className="w-3 h-3" />
                 {(() => {
-                  const now = new Date();
-                  now.setHours(0,0,0,0);
-                  const dueDate = new Date(task.current_due_date);
-                  const year = dueDate.getFullYear().toString().slice(-2);
-                  const displayDate = `期限 ${year}/${dueDate.getMonth() + 1}/${dueDate.getDate()}`;
-                  dueDate.setHours(0,0,0,0);
-                  const diffTime = dueDate.getTime() - now.getTime();
-                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                  const diffDays = getDiffDays(task.current_due_date);
+                  const displayDate = `期限 ${formatDisplayDate(task.current_due_date)}`;
                   
                   if (diffDays < 0) return `${displayDate} 経過`;
-                  if (diffDays === 0) return `${displayDate} 締切`;
+                  if (diffDays === 0) return `${displayDate} 締切(今日)`;
                   return `${displayDate}(あと${diffDays}日)`;
                 })()}
               </span>
