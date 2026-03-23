@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
-import { User, LogOut, Shield, Info, Bell } from 'lucide-react';
+import { User, LogOut, Shield, Info, Bell, HelpCircle, ChevronRight } from 'lucide-react';
 
 const Settings = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
@@ -145,17 +147,37 @@ const Settings = () => {
 
       {/* App Info */}
       <section className="bg-card rounded-3xl border border-border p-6 space-y-4">
-        <h3 className="text-xs font-bold text-muted-foreground uppercase flex items-center gap-2">
-          <Info className="w-3 h-3" /> アプリケーション情報
-        </h3>
-        <div className="space-y-3">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">バージョン</span>
-            <span className="font-mono">1.0.0-PRO</span>
+        <h3 className="text-xs font-bold text-muted-foreground uppercase flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Info className="w-3 h-3" /> アプリケーション情報
           </div>
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            このアプリは、あなたの成功を願って開発されました。先延ばしは技術で解決できます。一歩ずつ進みましょう。
-          </p>
+        </h3>
+        <div className="space-y-4">
+          <button 
+            onClick={() => navigate('/guide')}
+            className="w-full flex items-center justify-between p-4 bg-secondary/50 hover:bg-secondary rounded-2xl transition-all group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                <HelpCircle className="w-5 h-5 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold">使い方ガイド</p>
+                <p className="text-[10px] text-muted-foreground">アプリの理念と操作方法を確認</p>
+              </div>
+            </div>
+            <ChevronRight className="w-5 h-5 text-muted-foreground" />
+          </button>
+
+          <div className="space-y-3 pt-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">バージョン</span>
+              <span className="font-mono text-xs">1.0.0-PRO</span>
+            </div>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              このアプリは、あなたの成功を願って開発されました。先延ばしは技術で解決できます。一歩ずつ進みましょう。
+            </p>
+          </div>
         </div>
       </section>
 

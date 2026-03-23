@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle2, Circle, Clock, Footprints, ChevronRight } from 'lucide-react';
+import { CheckCircle2, Circle, Clock, Footprints, ChevronRight, Lightbulb } from 'lucide-react';
 import { useTasks } from '../hooks/useTasks';
 import type { Task } from '../hooks/useTasks';
 import { ExcuseModal } from '../components/ExcuseModal';
@@ -298,13 +298,23 @@ const Home = () => {
       )}
 
       {/* Hero / Welcome */}
-      <section className="bg-gradient-to-br from-primary to-blue-600 rounded-3xl p-6 text-primary-foreground shadow-xl shadow-primary/20">
-        <h2 className="text-sm font-medium opacity-80 mb-1">こんにちは</h2>
-        <p className="text-2xl font-bold whitespace-pre-line">
-          {todoTasks.length > 0 
-            ? `${todoTasks.length}件のタスクを\n完了させましょう`
-            : "すべてのタスクが\n完了しました！"}
-        </p>
+      <section className="bg-gradient-to-br from-primary to-blue-600 rounded-3xl p-6 text-primary-foreground shadow-xl shadow-primary/20 relative overflow-hidden">
+        <div className="relative z-10">
+          <h2 className="text-sm font-medium opacity-80 mb-1">こんにちは</h2>
+          <p className="text-2xl font-bold whitespace-pre-line mb-4">
+            {todoTasks.length > 0 
+              ? `${todoTasks.length}件のタスクを\n完了させましょう`
+              : "すべてのタスクが\n完了しました！"}
+          </p>
+          <button 
+            onClick={() => navigate('/guide')}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-full text-[11px] font-bold backdrop-blur-sm transition-all"
+          >
+            <Lightbulb className="w-3.5 h-3.5" />
+            使い方を見る
+          </button>
+        </div>
+        <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl"></div>
       </section>
 
       {/* 2-Minute Rules (Show individual actionable items) */}
