@@ -96,8 +96,8 @@ const Guide = () => {
       <section className="bg-secondary/50 p-6 rounded-3xl border border-border/50 flex gap-4 items-start">
         <Lightbulb className="w-6 h-6 text-primary shrink-0 mt-1" />
         <div className="space-y-2">
-          <h4 className="font-bold text-sm">Do It Now の哲学</h4>
-          <p className="text-xs text-muted-foreground leading-relaxed">
+          <h3 className="font-bold text-lg text-foreground">Do It Now の哲学</h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
             完璧主義を捨てて「不完全な一歩」を愛しましょう。
             一度動き出せば、やる気は後からついてきます。
           </p>
