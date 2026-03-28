@@ -290,6 +290,7 @@ const Home = () => {
         <ExcuseModal 
           task={overdueTask} 
           onClose={() => setOverdueTask(null)} 
+          onComplete={completeTask}
           onSuccess={() => {
             setOverdueTask(null);
             refresh();

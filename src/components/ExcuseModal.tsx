@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Calendar, Save } from 'lucide-react';
+import { AlertCircle, Calendar, Save, CheckCircle2 } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import type { Task } from '../hooks/useTasks';
 
@@ -7,6 +7,7 @@ interface ExcuseModalProps {
   task: Task;
   onClose: () => void;
   onSuccess: () => void;
+  onComplete: (taskId: string) => Promise<void>;
 }
 
 const REASONS = [
@@ -19,11 +20,24 @@ const REASONS = [
   'そもそもの期限設定が無理だった',
 ];
 
-export const ExcuseModal: React.FC<ExcuseModalProps> = ({ task, onSuccess }) => {
+export const ExcuseModal: React.FC<ExcuseModalProps> = ({ task, onSuccess, onComplete }) => {
   const [loading, setLoading] = useState(false);
   const [reasonCategory, setReasonCategory] = useState(REASONS[0]);
   const [detail, setDetail] = useState('');
   const [newDueDate, setNewDueDate] = useState('tomorrow');
+
+  const handleComplete = async () => {
+    setLoading(true);
+    try {
+      await onComplete(task.id);
+      onSuccess();
+    } catch (err) {
+      console.error('Error completing task:', err);
+      alert('完了処理に失敗しました。');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -135,6 +149,21 @@ export const ExcuseModal: React.FC<ExcuseModalProps> = ({ task, onSuccess }) => 
                 再設定してやり直す
               </>
             )}
+          </button>
+
+          <div className="relative py-2 text-center">
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest bg-card px-2 relative z-10">OR</span>
+            <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-border"></div>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleComplete}
+            disabled={loading}
+            className="w-full py-4 bg-green-500/10 text-green-600 border border-green-500/20 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-green-500 hover:text-white transition-all active:scale-[0.98] disabled:opacity-50"
+          >
+            <CheckCircle2 className="w-5 h-5" />
+            実はもう終わっている
           </button>
         </form>
       </div>
