@@ -17,30 +17,26 @@ async function sendNotifications() {
 
   const type = process.argv[2] || 'overdue'; // 'morning' or 'overdue'
 
+  // 安全にJSTの日付数値を取得する関数（ロケールやサーバー設定に依存しない絶対オフセット方式）
+  const getJstDateIntSafe = (dateInput) => {
+    try {
+      if (!dateInput) return null;
+      const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
+      if (isNaN(date.getTime())) return null;
+
+      // UTC時間に 9時間（JST）を加算して直接日付を取り出す
+      const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+      const y = jstDate.getUTCFullYear();
+      const m = jstDate.getUTCMonth() + 1;
+      const d = jstDate.getUTCDate();
+      return y * 10000 + m * 100 + d;
+    } catch (e) {
+      console.error(`Error parsing date: ${dateInput}`, e);
+      return null;
+    }
+  };
+
   if (type === 'morning') {
-    // 毎朝のサマリー通知
-    const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
-    if (subError) console.error('Error fetching subscriptions:', subError);
-    console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
-
-    // 安全にJSTの日付数値を取得する関数（ロケールやサーバー設定に依存しない絶対オフセット方式）
-    const getJstDateIntSafe = (dateInput) => {
-      try {
-        if (!dateInput) return null;
-        const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
-        if (isNaN(date.getTime())) return null;
-
-        // UTC時間に 9時間（JST）を加算して直接日付を取り出す
-        const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
-        const y = jstDate.getUTCFullYear();
-        const m = jstDate.getUTCMonth() + 1;
-        const d = jstDate.getUTCDate();
-        return y * 10000 + m * 100 + d;
-      } catch (e) {
-        console.error(`Error parsing date: ${dateInput}`, e);
-        return null;
-      }
-    };
 
     const todayInt = getJstDateIntSafe(new Date());
     // 3日後の日付数値を取得
@@ -106,6 +102,32 @@ async function sendNotifications() {
 
       await sendPush(sub, { title: 'Do It Now', body }, supabase);
       console.log(`Sent morning summary notification.`);
+    }
+  } else if (type === 'evening') {
+    // 夜 21時の未完了リマインド通知
+    const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
+    if (subError) console.error('Error fetching subscriptions:', subError);
+
+    const todayInt = getJstDateIntSafe(new Date());
+
+    for (const sub of (subs || [])) {
+      const { data: tasks } = await supabase
+        .from('tasks')
+        .select('*')
+        .eq('user_id', sub.user_id)
+        .neq('status', 'completed');
+
+      if (!tasks) continue;
+
+      const unfinishedTodayTasks = tasks.filter(t => getJstDateIntSafe(t.current_due_date) === todayInt);
+
+      if (unfinishedTodayTasks.length > 0) {
+        let body = `今日が期限の未完了タスクがあります\n`;
+        body += unfinishedTodayTasks.map(t => `・${t.title}`).join('\n');
+        
+        await sendPush(sub, { title: 'Do It Now', body }, supabase);
+        console.log(`Sent evening reminder for user ${sub.user_id}.`);
+      }
     }
   }
   console.log('Notification process completed.');
