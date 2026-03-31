@@ -37,6 +37,10 @@ async function sendNotifications() {
   };
 
   if (type === 'morning') {
+    // 毎朝のサマリー通知用
+    const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
+    if (subError) console.error('Error fetching subscriptions:', subError);
+    console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
 
     const todayInt = getJstDateIntSafe(new Date());
     // 3日後の日付数値を取得
