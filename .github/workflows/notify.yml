@@ -1,8 +1,8 @@
 name: Nightly Notifications
 on:
   schedule:
-    - cron: '15 21 * * *' # 日本時間 06:15 (UTC 21:15)
-    - cron: '0 12 * * *'  # 日本時間 21:00 (UTC 12:00)
+    - cron: '45 20 * * *' # 日本時間 05:45 (UTC 20:45)
+    - cron: '30 10 * * *' # 日本時間 19:30 (UTC 10:30)
   workflow_dispatch: # 手動実行用
 
 jobs:
@@ -20,9 +20,4 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
-        run: |
-          if [ "${{ github.event.schedule }}" == "0 12 * * *" ]; then
-            node scripts/send-notifications.js evening
-          else
-            node scripts/send-notifications.js morning
-          fi
+        run: node scripts/send-notifications.js auto

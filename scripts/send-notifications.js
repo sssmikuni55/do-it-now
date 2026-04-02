@@ -15,55 +15,58 @@ async function sendNotifications() {
     vapidPrivate
   );
 
-  const type = process.argv[2] || 'overdue'; // 'morning' or 'overdue'
+  const typeArg = process.argv[2] || 'auto';
+  const now = new Date();
 
-  // 安全にJSTの日付数値を取得する関数（ロケールやサーバー設定に依存しない絶対オフセット方式）
+  // 安全にJSTの日付・時刻を取得するヘルパー群
   const getJstDateIntSafe = (dateInput) => {
     try {
       if (!dateInput) return null;
       const date = (dateInput instanceof Date) ? dateInput : new Date(dateInput);
       if (isNaN(date.getTime())) return null;
-
-      // UTC時間に 9時間（JST）を加算して直接日付を取り出す
       const jstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
-      const y = jstDate.getUTCFullYear();
-      const m = jstDate.getUTCMonth() + 1;
-      const d = jstDate.getUTCDate();
-      return y * 10000 + m * 100 + d;
-    } catch (e) {
-      console.error(`Error parsing date: ${dateInput}`, e);
-      return null;
-    }
+      return jstDate.getUTCFullYear() * 10000 + (jstDate.getUTCMonth() + 1) * 100 + jstDate.getUTCDate();
+    } catch (e) { return null; }
   };
 
-  if (type === 'morning') {
-    // 毎朝のサマリー通知用
-    const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
-    if (subError) console.error('Error fetching subscriptions:', subError);
-    console.log(`Debug: Found ${subs?.length || 0} subscriptions in DB.`);
+  const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+  const jstHour = jstNow.getUTCHours();
+  const todayInt = getJstDateIntSafe(now);
 
-    const todayInt = getJstDateIntSafe(new Date());
-    // 3日後の日付数値を取得
+  console.log(`--- Notification Process Starting ---`);
+  console.log(`Current Time (UTC): ${now.toISOString()}`);
+  console.log(`Current Time (JST): ${jstNow.getUTCFullYear()}/${jstNow.getUTCMonth() + 1}/${jstNow.getUTCDate()} ${jstHour}:00 (approx)`);
+  console.log(`Today's JST Date Int: ${todayInt}`);
+
+  let type = typeArg;
+  if (type === 'auto') {
+    if (jstHour >= 5 && jstHour <= 11) type = 'morning'; // 朝6時前後〜昼前
+    else if (jstHour >= 18 && jstHour <= 23) type = 'evening'; // 夜19時〜深夜
+    else {
+      console.log(`Warning: Current Hour (${jstHour}) is outside standard ranges. Defaulting to 'morning'.`);
+      type = 'morning';
+    }
+  }
+  console.log(`Detected Notification Type: ${type}`);
+
+  // 全購読者の取得
+  const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
+  if (subError) {
+    console.error('Error fetching subscriptions:', subError);
+    return;
+  }
+  console.log(`Total subscriptions found in DB: ${subs?.length || 0}`);
+
+  if (type === 'morning') {
+    // 毎朝のサマリー通知
     const threeDaysLater = new Date();
     threeDaysLater.setDate(threeDaysLater.getDate() + 3);
     const threeDaysLaterInt = getJstDateIntSafe(threeDaysLater);
 
-    console.log(`Debug: Current JST Date: ${todayInt}, 3 Days Later: ${threeDaysLaterInt}`);
-
     for (const sub of (subs || [])) {
-      console.log(`Analysis for User: ${sub.user_id}`);
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', sub.user_id)
-        .neq('status', 'completed');
-
-      if (!tasks || tasks.length === 0) {
-        console.log(`Debug: No pending tasks found in DB for user_id: ${sub.user_id}`);
-        continue;
-      }
-
-      console.log(`Debug: Total pending tasks in DB: ${tasks.length}`);
+      console.log(`[Morning] Processing User: ${sub.user_id}`);
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed');
+      if (!tasks || tasks.length === 0) continue;
 
       const todayTasks = [];
       const overdueTasks = [];
@@ -71,66 +74,40 @@ async function sendNotifications() {
 
       for (const t of tasks) {
         const dueInt = getJstDateIntSafe(t.current_due_date);
-        if (dueInt === null) {
-          console.log(`Debug: Skipping task "${t.title}" due to invalid date: ${t.current_due_date}`);
-          continue;
-        }
+        if (dueInt === null) continue;
         
-        if (dueInt === todayInt) {
-          todayTasks.push(t);
-        } else if (dueInt < todayInt) {
-          overdueTasks.push(t);
-        } else if (dueInt <= threeDaysLaterInt) {
-          upcomingTasks.push(t);
-        }
+        if (dueInt === todayInt) todayTasks.push(t);
+        else if (dueInt < todayInt) overdueTasks.push(t);
+        else if (dueInt <= threeDaysLaterInt) upcomingTasks.push(t);
       }
 
-      console.log(`User ${sub.user_id}: Final Filter Results -> Today=${todayTasks.length}, Overdue=${overdueTasks.length}, Upcoming=${upcomingTasks.length}`);
+      console.log(`- Results: Today=${todayTasks.length}, Overdue=${overdueTasks.length}, Upcoming=${upcomingTasks.length}`);
 
-      if (todayTasks.length === 0 && overdueTasks.length === 0 && upcomingTasks.length === 0) {
-        console.log(`Debug: No tasks matched for today/overdue/upcoming. Skipping notification.`);
-        continue;
+      if (todayTasks.length > 0 || overdueTasks.length > 0 || upcomingTasks.length > 0) {
+        let body = `おはようございます！\n`;
+        if (todayTasks.length > 0) body += `【今日が期限】\n${todayTasks.map(t => `・${t.title}`).join('\n')}\n`;
+        if (overdueTasks.length > 0) body += `【期限超過中】\n${overdueTasks.map(t => `・${t.title}`).join('\n')}\n`;
+        if (upcomingTasks.length > 0) body += `【近日中の予定】\n${upcomingTasks.map(t => `・${t.title}`).join('\n')}\n`;
+        body += `\n今日も「最初の一歩」だけ進めてみませんか？`;
+        
+        await sendPush(sub, { title: 'Do It Now', body }, supabase);
       }
-
-      let body = `おはようございます！\n`;
-      if (todayTasks.length > 0) {
-        body += `【今日が期限】\n${todayTasks.map(t => `・${t.title}`).join('\n')}\n`;
-      }
-      if (overdueTasks.length > 0) {
-        body += `【期限超過中】\n${overdueTasks.map(t => `・${t.title}`).join('\n')}\n`;
-      }
-      if (upcomingTasks.length > 0) {
-        body += `【近日中の予定】\n${upcomingTasks.map(t => `・${t.title}`).join('\n')}\n`;
-      }
-      body += `\n今日も今の「最初の一歩」だけ進めてみませんか？`;
-
-      await sendPush(sub, { title: 'Do It Now', body }, supabase);
-      console.log(`Sent morning summary notification.`);
     }
   } else if (type === 'evening') {
-    // 夜 21時の未完了リマインド通知
-    const { data: subs, error: subError } = await supabase.from('push_subscriptions').select('*');
-    if (subError) console.error('Error fetching subscriptions:', subError);
-
-    const todayInt = getJstDateIntSafe(new Date());
-
+    // 夜のリマインド通知
     for (const sub of (subs || [])) {
-      const { data: tasks } = await supabase
-        .from('tasks')
-        .select('*')
-        .eq('user_id', sub.user_id)
-        .neq('status', 'completed');
-
+      console.log(`[Evening] Processing User: ${sub.user_id}`);
+      const { data: tasks } = await supabase.from('tasks').select('*').eq('user_id', sub.user_id).neq('status', 'completed');
       if (!tasks) continue;
 
       const unfinishedTodayTasks = tasks.filter(t => getJstDateIntSafe(t.current_due_date) === todayInt);
+      console.log(`- Results: Tasks due today=${unfinishedTodayTasks.length}`);
 
       if (unfinishedTodayTasks.length > 0) {
         let body = `今日が期限の未完了タスクがあります\n`;
         body += unfinishedTodayTasks.map(t => `・${t.title}`).join('\n');
-        
         await sendPush(sub, { title: 'Do It Now', body }, supabase);
-        console.log(`Sent evening reminder for user ${sub.user_id}.`);
+        console.log(`- Sent evening reminder.`);
       }
     }
   }
