@@ -36,7 +36,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       </main>
 
       {/* Floating Action Button (FAB) */}
-      {!location.pathname.startsWith('/task/') && (
+      {!location.pathname.startsWith('/task/') && !location.pathname.startsWith('/add') && (
         <Link
           to="/add"
           className="fixed right-6 bottom-24 w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform z-20"

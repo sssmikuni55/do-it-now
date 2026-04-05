@@ -102,10 +102,11 @@ const TaskDetail = () => {
     <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 pb-24">
       <ConfirmDialog 
         isOpen={!!confirmTaskId}
-        title="完了の確認"
+        title={isDeleting ? "削除の確認" : "完了の確認"}
         message={confirmMessage}
         onConfirm={confirmComplete}
         onCancel={() => setConfirmTaskId(null)}
+        confirmText={isDeleting ? "削除" : "完了する"}
       />
 
       {/* Header */}
